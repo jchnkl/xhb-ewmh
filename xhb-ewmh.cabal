@@ -18,7 +18,6 @@ cabal-version:       >=1.10
 library
   exposed-modules:     Graphics.XHB.Ewmh,
                        Graphics.XHB.Either.Ewmh,
-                       Graphics.XHB.Either.XHB,
                        Graphics.XHB.Ewmh.Types,
                        Graphics.XHB.Icccm.Types
   -- other-modules:       
