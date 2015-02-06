@@ -28,6 +28,6 @@ library
                        MultiParamTypeClasses, OverlappingInstances
   build-depends:       base >=4.7 && <4.8, transformers >=0.3 && <0.4,
                        containers >=0.5 && <0.6, binary >=0.7 && <0.8,
-                       bytestring >=0.10 && <0.11, xhb
+                       bytestring >=0.10 && <0.11, either, mtl, xhb
   -- hs-source-dirs:      
   default-language:    Haskell2010
