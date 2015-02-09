@@ -31,6 +31,7 @@ import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans.Either (runEitherT, hoistEither)
 import Control.Monad.IO.Class (MonadIO(..))
 import Graphics.XHB
+import Graphics.XHB.Ewmh.Class
 import Graphics.XHB.Ewmh.Types
 
 fe :: (Enum a, Integral b) => a -> b

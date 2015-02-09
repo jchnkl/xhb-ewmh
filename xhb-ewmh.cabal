@@ -27,7 +27,7 @@ library
                        xhb          >= 0.5  && < 0.6
 
   exposed-modules:     Graphics.XHB.Ewmh,
-                       Graphics.XHB.Either.Ewmh,
+                       Graphics.XHB.Ewmh.Class,
                        Graphics.XHB.Ewmh.Types
 
   other-extensions:    DeriveDataTypeable,

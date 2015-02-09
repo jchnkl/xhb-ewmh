@@ -9,7 +9,6 @@
 module Graphics.XHB.Ewmh.Types
     ( Ewmh
     , EwmhT(..)
-    , MonadEwmh(..)
     , EwmhSetup(..)
     , EwmhProperties(..)
     , SOURCE_INDICATION(..)
@@ -18,17 +17,15 @@ module Graphics.XHB.Ewmh.Types
     , NET_MOVERESIZE_WINDOW_FLAG(..)
     ) where
 
-import Data.Map (Map)
-import qualified Data.Map as M
-import Data.Typeable (Typeable)
 import Control.Applicative (Applicative)
-import Control.Monad.State (MonadState(..), StateT(..), modify, gets)
-import Control.Monad.Reader (MonadReader(..), ReaderT(..), asks)
+import Control.Monad.State (MonadState(..), StateT(..))
+import Control.Monad.Reader (MonadReader(..), ReaderT(..))
 import Control.Monad.Writer (MonadWriter(..), runWriterT)
 import Control.Monad.Trans (MonadTrans(..))
-import Control.Monad.IO.Class (MonadIO(..))
-import Graphics.XHB (Connection, SomeError, ATOM, BitEnum, InternAtom(..))
-import qualified Graphics.XHB as X
+import Control.Monad.IO.Class (MonadIO)
+import Data.Map (Map)
+import Data.Typeable (Typeable)
+import Graphics.XHB (Connection, ATOM, BitEnum(..))
 
 data SOURCE_INDICATION = SOURCE_NONE
                        | SOURCE_APPLICATION
@@ -112,32 +109,8 @@ newtype EwmhT m a = EwmhT { unEwmhT :: StateT EwmhProperties (ReaderT EwmhSetup 
 
 type Ewmh = EwmhT IO
 
-class MonadIO m => MonadEwmh m where
-    getAtom :: String -> m (Either SomeError ATOM)
-    getConnection :: m Connection
-
-instance MonadIO m => MonadEwmh (EwmhT m) where
-    getAtom name = asks connection >>= \c -> do
-        ps <- gets properties
-        case M.lookup name ps of
-            Just atom -> return (Right atom)
-            Nothing -> do
-                eatom <- liftIO $ X.internAtom c request >>= X.getReply
-                case eatom of
-                    Left error -> return (Left error)
-                    Right atom -> do
-                        modify $ \e -> e { properties = M.insert name atom ps }
-                        return (Right atom)
-        where request = MkInternAtom True (fromIntegral $ length name) (X.stringToCList name)
-
-    getConnection = EwmhT $ asks connection
-
 instance MonadTrans EwmhT where
     lift m = EwmhT . lift . lift $ m
-
-instance (MonadTrans t, MonadEwmh m, MonadIO (t m)) => MonadEwmh (t m) where
-    getAtom = lift . getAtom
-    getConnection = lift getConnection
 
 instance (MonadState s m) => MonadState s (EwmhT m) where
     get = lift get
