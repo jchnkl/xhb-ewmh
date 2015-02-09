@@ -1,7 +1,11 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveDataTypeable  #-}
+{-# LANGUAGE FlexibleInstances   #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Graphics.XHB.Ewmh
     ( module Graphics.XHB.Ewmh.Types
+    , Utf8String(..)
     , runEwmhT
     , execEwmhT
     , atomToXidLike
@@ -23,6 +27,7 @@ import Data.Char (chr, ord)
 import Data.Word (Word8, Word32)
 import Data.Binary.Put (Put, runPut, putWord8, putWord16host, putWord32host)
 import Data.ByteString.Lazy (unpack)
+import Data.Typeable (Typeable)
 import Foreign.C.Types (CChar(..))
 import Control.Applicative (Applicative(..))
 import Control.Monad (replicateM_)
@@ -169,6 +174,35 @@ getUtf8String w prop = runEitherT $ do
     atom_ <- hoistEither =<< getAtom prop
     prop_ <- hoistEither =<< simpleGetProperty w atom_ type_
     return . toString . value_GetPropertyReply $ prop_
+
+type PropertyName = String
+
+newtype Utf8String = Utf8String { unUtf8String :: String }
+    deriving (Ord, Eq, Read, Show, Typeable)
+
+class PropertyClass a where
+    convProp :: [Word8] -> Maybe a
+    propType :: MonadEwmh m => a -> m (Either SomeError ATOM)
+    getProp' :: (Functor m, MonadEwmh m) => WINDOW -> PropertyName -> m (Either SomeError a)
+    getProp' w p = runEitherT $ do
+        ptyp_ <- hoistEither =<< propType (undefined :: a)
+        atom_ <- hoistEither =<< getAtom p
+        prop_ <- hoistEither =<< simpleGetProperty w atom_ ptyp_
+        hoistEither $ case convProp . value_GetPropertyReply $ prop_ of
+            Nothing -> Left . toError $ UnknownError "GetPropertyClass WINDOW: no window"
+            Just wn -> Right wn
+
+instance PropertyClass WINDOW where
+    convProp = toXidLike
+    propType _ = return . Right . fromXid . toXid $ (toValue AtomWINDOW :: Word32)
+
+instance PropertyClass [String] where
+    convProp = Just . toString
+    propType _ = return . Right . fromXid . toXid $ (toValue AtomSTRING :: Word32)
+
+instance PropertyClass [Utf8String] where
+    convProp = Just . map Utf8String . toString
+    propType _ = getAtom "UTF8_STRING"
 
 -- | Send an Ewmh request for `WINDOW` to the root window
 ewmhRequest :: (MonadEwmh m) => WINDOW -> String -> [Word32] -> m (Either SomeError ())
