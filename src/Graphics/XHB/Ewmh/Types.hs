@@ -128,6 +128,7 @@ instance (MonadReader r m) => MonadReader r (EwmhT m) where
         return a
 
 instance (MonadWriter w m) => MonadWriter w (EwmhT m) where
+    tell = lift . tell
     listen (EwmhT m) = EwmhT $ runWriterT (lift m)
     pass (EwmhT m) = EwmhT $ m >>= \(a,_) -> return a
 
