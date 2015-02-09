@@ -156,11 +156,6 @@ simpleChangeProperty window prop prop_type prop_mode values = do
         , data_ChangeProperty = values
         }
 
-{-
-<.$.> :: (Applicative m, Monad n) => (n a -> n b) -> m (n a) -> m (n b)
-<.$.> f m = fmap f m
--}
-
 getString :: (Functor m, MonadEwmh m) => WINDOW -> String -> m (Either SomeError [String])
 getString w prop = runEitherT $ do
     atom_ <- hoistEither =<< getAtom prop
