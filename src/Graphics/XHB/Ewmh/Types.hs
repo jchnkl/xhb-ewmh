@@ -27,9 +27,8 @@ import Control.Monad.Reader (MonadReader(..), ReaderT(..), asks)
 import Control.Monad.Writer (MonadWriter(..), runWriterT)
 import Control.Monad.Trans (MonadTrans(..))
 import Control.Monad.IO.Class (MonadIO(..))
-import Graphics.XHB
-import Graphics.XHB.Either.XHB (MonadEither)
-import qualified Graphics.XHB.Either.XHB as XE
+import Graphics.XHB (Connection, SomeError, ATOM, BitEnum, InternAtom(..))
+import qualified Graphics.XHB as X
 
 data SOURCE_INDICATION = SOURCE_NONE
                        | SOURCE_APPLICATION
@@ -113,31 +112,30 @@ newtype EwmhT m a = EwmhT { unEwmhT :: StateT EwmhProperties (ReaderT EwmhSetup 
 
 type Ewmh = EwmhT IO
 
-class (MonadIO m, MonadEither SomeError m) => MonadEwmh m where
-    getAtom :: String -> m ATOM
+class MonadIO m => MonadEwmh m where
+    getAtom :: String -> m (Either SomeError ATOM)
     getConnection :: m Connection
 
-instance (MonadIO m, MonadEither SomeError m) => MonadEwmh (EwmhT m) where
+instance MonadIO m => MonadEwmh (EwmhT m) where
     getAtom name = asks connection >>= \c -> do
         ps <- gets properties
         case M.lookup name ps of
-            Just atom -> return atom
+            Just atom -> return (Right atom)
             Nothing -> do
-                atom <- liftIO (internAtom c request) >>= XE.getReply
-                modify $ \e -> e { properties = M.insert name atom ps }
-                return atom
-        where request = MkInternAtom True (fromIntegral $ length name) (stringToCList name)
+                eatom <- liftIO $ X.internAtom c request >>= X.getReply
+                case eatom of
+                    Left error -> return (Left error)
+                    Right atom -> do
+                        modify $ \e -> e { properties = M.insert name atom ps }
+                        return (Right atom)
+        where request = MkInternAtom True (fromIntegral $ length name) (X.stringToCList name)
 
     getConnection = EwmhT $ asks connection
 
 instance MonadTrans EwmhT where
     lift m = EwmhT . lift . lift $ m
 
-instance ( MonadTrans t
-         , MonadEwmh m
-         , MonadIO (t m)
-         , MonadEither SomeError (t m)
-         ) => MonadEwmh (t m) where
+instance (MonadTrans t, MonadEwmh m, MonadIO (t m)) => MonadEwmh (t m) where
     getAtom = lift . getAtom
     getConnection = lift getConnection
 
@@ -168,6 +166,3 @@ instance (Monad m) => MonadState EwmhProperties (EwmhT m) where
 instance (Monad m) => MonadReader EwmhSetup (EwmhT m) where
     ask = EwmhT ask
     local f (EwmhT m) = EwmhT (local f m)
-
-instance (MonadEither l m) => MonadEither l (EwmhT m) where
-    hoistEither = lift . XE.hoistEither

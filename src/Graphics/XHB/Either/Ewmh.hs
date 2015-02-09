@@ -120,9 +120,9 @@ simpleGetProperty :: (MonadEwmh m)
                   => WINDOW -- ^ Target window
                   -> ATOM -- ^ Property
                   -> ATOM -- ^ Property Type
-                  -> m GetPropertyReply
+                  -> m (Either SomeError GetPropertyReply)
 simpleGetProperty win prop prop_type = getConnection >>= \c -> do
-    liftIO (getProperty c request) >>= XE.getReply
+    liftIO (getProperty c request) >>= getReply
     where
     request = MkGetProperty
         { delete_GetProperty = False
