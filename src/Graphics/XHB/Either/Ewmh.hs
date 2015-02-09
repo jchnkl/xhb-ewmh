@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Graphics.XHB.Either.Ewmh
     ( module Graphics.XHB.Ewmh.Types
     , runEwmhT
@@ -26,9 +28,9 @@ import Control.Applicative (Applicative(..), (<$>))
 import Control.Monad ((<=<), replicateM_)
 import Control.Monad.State (evalStateT)
 import Control.Monad.Reader (runReaderT)
+import Control.Monad.Trans.Either (runEitherT, hoistEither)
 import Control.Monad.IO.Class (MonadIO(..))
 import Graphics.XHB
-import qualified Graphics.XHB.Either.XHB as XE
 import Graphics.XHB.Ewmh.Types
 
 fe :: (Enum a, Integral b) => a -> b
@@ -122,7 +124,7 @@ simpleGetProperty :: (MonadEwmh m)
                   -> ATOM -- ^ Property Type
                   -> m (Either SomeError GetPropertyReply)
 simpleGetProperty win prop prop_type = getConnection >>= \c -> do
-    liftIO (getProperty c request) >>= getReply
+    liftIO $ getProperty c request >>= getReply
     where
     request = MkGetProperty
         { delete_GetProperty = False
@@ -133,7 +135,7 @@ simpleGetProperty win prop prop_type = getConnection >>= \c -> do
         , long_length_GetProperty = maxBound
         }
 
-simpleChangeProperty :: (MonadEwmh m) -- , MonadEwmh m, MonadEither SomeError m)
+simpleChangeProperty :: MonadEwmh m
                      => WINDOW -- ^ Target window
                      -> ATOM -- ^ Property to change
                      -> ATOM -- ^ Property Type
@@ -153,23 +155,32 @@ simpleChangeProperty window prop prop_type prop_mode values = do
         , data_ChangeProperty = values
         }
 
-getString :: (Functor m, MonadEwmh m) => WINDOW -> String -> m [String]
-getString w prop = do
-    atom_ <- getAtom prop
-    toString . value_GetPropertyReply <$> simpleGetProperty w atom_ type_
+{-
+<.$.> :: (Applicative m, Monad n) => (n a -> n b) -> m (n a) -> m (n b)
+<.$.> f m = fmap f m
+-}
+
+getString :: (Functor m, MonadEwmh m) => WINDOW -> String -> m (Either SomeError [String])
+getString w prop = runEitherT $ do
+    atom_ <- hoistEither =<< getAtom prop
+    prop_ <- hoistEither =<< simpleGetProperty w atom_ type_
+    return . toString . value_GetPropertyReply $ prop_
     where type_ = fromXid $ toXid (toValue AtomSTRING :: Word32)
 
-getUtf8String :: (Functor m, MonadEwmh m) => WINDOW -> String -> m [String]
-getUtf8String w prop = do
-    type_ <- getAtom "UTF8_STRING"
-    atom_ <- getAtom prop
-    toString . value_GetPropertyReply <$> simpleGetProperty w atom_ type_
+getUtf8String :: (Functor m, MonadEwmh m) => WINDOW -> String -> m (Either SomeError [String])
+getUtf8String w prop = runEitherT $ do
+    type_ <- hoistEither =<< getAtom "UTF8_STRING"
+    atom_ <- hoistEither =<< getAtom prop
+    prop_ <- hoistEither =<< simpleGetProperty w atom_ type_
+    return . toString . value_GetPropertyReply $ prop_
 
 -- | Send an Ewmh request for `WINDOW` to the root window
-ewmhRequest :: (MonadEwmh m) => WINDOW -> String -> [Word32] -> m ()
-ewmhRequest window prop_str values = getConnection >>= \c -> do
-    getAtom prop_str >>= liftIO . sendEvent c . request (getRoot c) . serializeEvent
+ewmhRequest :: (MonadEwmh m) => WINDOW -> String -> [Word32] -> m (Either SomeError ())
+ewmhRequest window prop_str values = runEitherT $ getConnection >>= \c -> do
+    getAtom prop_str >>= hoistEither >>= send c
     where
+    send c = liftIO . sendEvent c . request (getRoot c) . serializeEvent
+
     serializeEvent = map (CChar . fromIntegral) . toBytes . event
 
     event typ = MkClientMessageEvent
@@ -193,9 +204,12 @@ changeNetWmState :: (MonadEwmh m)
                  -> SOURCE_INDICATION
                  -> NET_WM_STATE_HINT
                  -> NET_WM_STATE_ACTION
-                 -> m ()
-changeNetWmState w si hint action = do
-    ewmhRequest w "_NET_WM_STATE" . values <=< getAtom $ "_" ++ show hint
+                 -> m (Either SomeError ())
+changeNetWmState w si hint action = runEitherT $ do
+    hoistEither =<< ewmhRequest w "_NET_WM_STATE" . values
+                -- <=< hoistEither
+                =<< hoistEither
+                =<< getAtom ("_" ++ show hint)
     where values a = [fe action, fromXidLike a, 0, fe si]
 
 -- TODO: Gravity
@@ -204,8 +218,8 @@ netMoveResizeWindow :: (MonadEwmh m)
                     -> SOURCE_INDICATION
                     -- -> WindowGravity
                     -> [(NET_MOVERESIZE_WINDOW_FLAG, Word32)]
-                    -> m ()
-netMoveResizeWindow _ _  [] = return ()
+                    -> m (Either SomeError ())
+netMoveResizeWindow _ _ [] = return . Left . toError $ UnknownError "netMoveResizeWindow: no flags"
 netMoveResizeWindow w si vp = do
     ewmhRequest w "_NET_MOVERESIZE_WINDOW" $ flags vp : map snd (M.toList $ values vp)
     where
@@ -224,15 +238,18 @@ netMoveResizeWindow w si vp = do
                                     , (NET_MOVERESIZE_WINDOW_HEIGHT, 0)
                                     ]
 
-netActiveWindow :: MonadEwmh m => WINDOW -> SOURCE_INDICATION -> m ()
+netActiveWindow :: MonadEwmh m => WINDOW -> SOURCE_INDICATION -> m (Either SomeError ())
 netActiveWindow w s = ewmhRequest w "_NET_ACTIVE_WINDOW" [fromIntegral $ fromEnum s]
 
-getNetActiveWindow :: (Applicative m, MonadEwmh m) => m (Maybe WINDOW)
-getNetActiveWindow = getConnection >>= \c -> do
-    prop <- getAtom "_NET_ACTIVE_WINDOW"
-    toXidLike . value_GetPropertyReply <$> simpleGetProperty (getRoot c) prop prop_type
+getNetActiveWindow :: (Applicative m, MonadEwmh m) => m (Either SomeError WINDOW)
+getNetActiveWindow = runEitherT $ getConnection >>= \c -> do
+    atom_ <- hoistEither =<< getAtom "_NET_ACTIVE_WINDOW"
+    prop_ <- hoistEither =<< simpleGetProperty (getRoot c) atom_ prop_type
+    hoistEither $ case toXidLike . value_GetPropertyReply $ prop_ of
+        Nothing -> Left . toError $ UnknownError "getNetActiveWindow: no window"
+        Just w  -> Right w
     where prop_type = fromXid $ toXid (toValue AtomWINDOW :: Word32)
 
-netRestackWindow :: MonadEwmh m => WINDOW -> SOURCE_INDICATION -> m ()
+netRestackWindow :: MonadEwmh m => WINDOW -> SOURCE_INDICATION -> m (Either SomeError ())
 netRestackWindow win s = ewmhRequest win "_NET_RESTACK_WINDOW" [toWord s]
     where toWord = fromIntegral . fromEnum

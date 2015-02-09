@@ -1,5 +1,10 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Graphics.XHB.Ewmh
-    ( getAtom
+    ( module Graphics.XHB.Ewmh.Types
+    , runEwmhT
+    , execEwmhT
+    , atomToXidLike
     , simpleGetProperty
     , simpleChangeProperty
     , getString
