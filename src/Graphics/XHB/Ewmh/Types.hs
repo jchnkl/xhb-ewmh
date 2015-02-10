@@ -9,8 +9,6 @@
 module Graphics.XHB.Ewmh.Types
     ( Ewmh
     , EwmhT(..)
-    , EwmhSetup(..)
-    , EwmhProperties(..)
     , SOURCE_INDICATION(..)
     , NET_WM_STATE_HINT(..)
     , NET_WM_STATE_ACTION(..)
@@ -18,14 +16,14 @@ module Graphics.XHB.Ewmh.Types
     ) where
 
 import Control.Applicative (Applicative)
-import Control.Monad.State (MonadState(..), StateT(..))
+import Control.Monad.State (MonadState(..))
 import Control.Monad.Reader (MonadReader(..), ReaderT(..))
-import Control.Monad.Writer (MonadWriter(..), runWriterT)
+import Control.Monad.Writer (MonadWriter(..))
 import Control.Monad.Trans (MonadTrans(..))
 import Control.Monad.IO.Class (MonadIO)
-import Data.Map (Map)
 import Data.Typeable (Typeable)
-import Graphics.XHB (Connection, ATOM, BitEnum(..))
+import Graphics.XHB (Connection, BitEnum(..))
+import Graphics.XHB.Atom
 
 data SOURCE_INDICATION = SOURCE_NONE
                        | SOURCE_APPLICATION
@@ -95,12 +93,7 @@ data NET_WM_MOVERESIZE = NET_WM_MOVERESIZE_SIZE_TOPLEFT
                        | NET_WM_MOVERESIZE_CANCEL
     deriving (Eq, Ord, Read, Show, Typeable)
 
-
-data EwmhSetup = EwmhSetup { connection :: Connection }
-
-data EwmhProperties = EwmhProperties { properties :: Map String ATOM }
-
-newtype EwmhT m a = EwmhT { unEwmhT :: StateT EwmhProperties (ReaderT EwmhSetup m) a }
+newtype EwmhT m a = EwmhT { unEwmhT :: ReaderT Connection (AtomT m) a }
     deriving ( Applicative
              , Functor
              , Monad
@@ -119,24 +112,9 @@ instance (MonadState s m) => MonadState s (EwmhT m) where
 
 instance (MonadReader r m) => MonadReader r (EwmhT m) where
     ask = lift ask
-    local f (EwmhT m) = EwmhT $ do
-        props <- get
-        setup <- ask
-        let m' = flip runReaderT setup $ flip runStateT props m
-        (a, props') <- lift . lift $ local f m'
-        put props'
-        return a
+    local f (EwmhT m) = EwmhT . ReaderT $ local f . runReaderT m
 
 instance (MonadWriter w m) => MonadWriter w (EwmhT m) where
     tell = lift . tell
-    listen (EwmhT m) = EwmhT $ runWriterT (lift m)
-    pass (EwmhT m) = EwmhT $ m >>= \(a,_) -> return a
-
-instance (Monad m) => MonadState EwmhProperties (EwmhT m) where
-    get = EwmhT get
-    put = EwmhT . put
-    state = EwmhT . state
-
-instance (Monad m) => MonadReader EwmhSetup (EwmhT m) where
-    ask = EwmhT ask
-    local f (EwmhT m) = EwmhT (local f m)
+    listen = EwmhT . listen . unEwmhT
+    pass = EwmhT . pass . unEwmhT

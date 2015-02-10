@@ -7,7 +7,6 @@ module Graphics.XHB.Ewmh
     ( module Graphics.XHB.Ewmh.Types
     , Utf8String(..)
     , runEwmhT
-    , execEwmhT
     , atomToXidLike
     , simpleGetProperty
     , simpleChangeProperty
@@ -36,6 +35,7 @@ import Control.Monad.Reader (runReaderT)
 import Control.Monad.Trans.Either (runEitherT, hoistEither)
 import Control.Monad.IO.Class (MonadIO(..))
 import Graphics.XHB
+import Graphics.XHB.Atom (runAtomT)
 import Graphics.XHB.Ewmh.Class
 import Graphics.XHB.Ewmh.Types
 
@@ -116,13 +116,8 @@ instance Serialize ClientMessageData where
     serialize (ClientData32 ws) = do mapM_ putWord32host ws
                                      putSkip32 (5 - length ws)
 
-execEwmhT :: (Monad m) => Connection -> EwmhT m a -> m a
-execEwmhT c = runEwmhT setup props
-    where setup = EwmhSetup { connection = c }
-          props = EwmhProperties { properties = M.empty }
-
-runEwmhT :: (Monad m) => EwmhSetup -> EwmhProperties -> EwmhT m a -> m a
-runEwmhT s p = flip runReaderT s . flip evalStateT p . unEwmhT
+runEwmhT :: (Monad m) => Connection -> EwmhT m a -> m a
+runEwmhT c = runAtomT c . flip runReaderT c . unEwmhT
 
 simpleGetProperty :: (MonadEwmh m)
                   => WINDOW -- ^ Target window
