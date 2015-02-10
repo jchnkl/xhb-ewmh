@@ -5,8 +5,8 @@ module Graphics.XHB.Ewmh.Atoms where
 import Data.Typeable (Typeable)
 
 class Show a => EwmhAtom a where
-    toString :: a -> String
-    toString a = "_" ++ show a
+    toAtomString :: a -> String
+    toAtomString a = "_" ++ show a
 
 data NET_WM_STATE_HINT = NET_WM_STATE_MODAL
                        | NET_WM_STATE_STICKY

@@ -39,7 +39,7 @@ import Graphics.XHB.Atom (runAtomT)
 import Graphics.XHB.Ewmh.Class
 import Graphics.XHB.Ewmh.Types
 import Graphics.XHB.Ewmh.Bits
-import Graphics.XHB.Ewmh.Atoms hiding (toString)
+import Graphics.XHB.Ewmh.Atoms
 
 fe :: (Enum a, Integral b) => a -> b
 fe = fromIntegral . fromEnum
