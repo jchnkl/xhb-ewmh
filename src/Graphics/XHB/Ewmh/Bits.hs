@@ -51,7 +51,7 @@ data NET_WM_MOVERESIZE_DIRECTION = NET_WM_MOVERESIZE_SIZE_TOPLEFT
                                  | NET_WM_MOVERESIZE_SIZE_KEYBOARD
                                  | NET_WM_MOVERESIZE_MOVE_KEYBOARD
                                  | NET_WM_MOVERESIZE_CANCEL
-    deriving (Eq, Ord, Read, Typeable)
+    deriving (Enum, Eq, Ord, Read, Show, Typeable)
 
 instance BitEnum NET_WM_MOVERESIZE_DIRECTION where
     toBit v = case v of

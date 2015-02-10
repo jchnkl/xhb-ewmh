@@ -21,7 +21,7 @@ data NET_WM_STATE_HINT = NET_WM_STATE_MODAL
                        | NET_WM_STATE_BELOW
                        | NET_WM_STATE_DEMANDS_ATTENTION
                        | NET_WM_STATE_FOCUSED
-    deriving (Eq, Ord, Read, Show, Typeable)
+    deriving (Enum, Eq, Ord, Read, Show, Typeable)
 
 instance EwmhAtom NET_WM_STATE_HINT
 
@@ -38,7 +38,7 @@ data ROOT_WINDOW_PROPERTY = NET_SUPPORTED
                           | NET_VIRTUAL_ROOTS
                           | NET_DESKTOP_LAYOUT
                           | NET_SHOWING_DESKTOP
-    deriving (Eq, Ord, Read, Show, Typeable)
+    deriving (Enum, Eq, Ord, Read, Show, Typeable)
 
 instance EwmhAtom ROOT_WINDOW_PROPERTY
 
@@ -47,7 +47,7 @@ data ROOT_WINDOW_MESSAGES = NET_CLOSE_WINDOW
                           | NET_WM_MOVERESIZE
                           | NET_RESTACK_WINDOW
                           | NET_REQUEST_FRAME_EXTENTS
-    deriving (Eq, Ord, Read, Show, Typeable)
+    deriving (Enum, Eq, Ord, Read, Show, Typeable)
 
 instance EwmhAtom ROOT_WINDOW_MESSAGES
 
@@ -70,13 +70,13 @@ data APPLICATION_WINDOW_PROPERTY = NET_WM_NAME
                                  | NET_FRAME_EXTENTS
                                  | NET_WM_OPAQUE_REGION
                                  | NET_WM_BYPASS_COMPOSITOR
-    deriving (Eq, Ord, Read, Show, Typeable)
+    deriving (Enum, Eq, Ord, Read, Show, Typeable)
 
 instance EwmhAtom APPLICATION_WINDOW_PROPERTY
 
 data WINDOW_MANAGER_PROTOCOL = NET_WM_PING
                              | NET_WM_SYNC_REQUEST
                              | NET_WM_FULLSCREEN_MONITORS
-    deriving (Eq, Ord, Read, Show, Typeable)
+    deriving (Enum, Eq, Ord, Read, Show, Typeable)
 
 instance EwmhAtom WINDOW_MANAGER_PROTOCOL
