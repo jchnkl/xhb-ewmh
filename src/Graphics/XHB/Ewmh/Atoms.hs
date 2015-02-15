@@ -6,7 +6,7 @@ import Data.Typeable (Typeable)
 
 class Show a => EwmhAtom a where
     toAtomString :: a -> String
-    toAtomString a = "_" ++ show a
+    toAtomString a = '_' : show a
 
 data NET_WM_STATE_HINT = NET_WM_STATE_MODAL
                        | NET_WM_STATE_STICKY
