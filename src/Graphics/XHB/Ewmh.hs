@@ -118,8 +118,10 @@ instance Serialize ClientMessageData where
     serialize (ClientData32 ws) = do mapM_ putWord32host ws
                                      putSkip32 (5 - length ws)
 
-runEwmhT :: (Monad m) => Connection -> EwmhT m a -> m a
-runEwmhT c = runAtomT c . flip runReaderT c . unEwmhT
+runEwmhT :: (Applicative m, MonadIO m)
+         => Connection -> EwmhT m a -> m (Either SomeError a)
+runEwmhT c = runAtomT c . seedAtoms atoms . flip runReaderT c . unEwmhT
+    where atoms = map toAtomString [NET_SUPPORTED .. NET_WM_FULL_PLACEMENT]
 
 simpleGetProperty :: (MonadEwmh m)
                   => WINDOW -- ^ Target window
