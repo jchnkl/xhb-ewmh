@@ -25,7 +25,7 @@ class MonadIO m => MonadEwmh m where
     getConnection :: m Connection
 
 instance MonadIO m => MonadEwmh (EwmhT m) where
-    getAtom = EwmhT . XA.getAtom
+    getAtom = EwmhT . XA.lookupAtom
     getConnection = EwmhT ask
 
 instance (MonadTrans t, MonadEwmh m, MonadIO (t m)) => MonadEwmh (t m) where
