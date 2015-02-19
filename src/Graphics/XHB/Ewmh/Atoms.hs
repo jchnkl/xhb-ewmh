@@ -10,6 +10,7 @@ data EwmhAtom =
     -- Root Window Properties
       NET_SUPPORTED
     | NET_CLIENT_LIST
+    | NET_CLIENT_LIST_STACKING
     | NET_NUMBER_OF_DESKTOPS
     | NET_DESKTOP_GEOMETRY
     | NET_DESKTOP_VIEWPORT
@@ -53,6 +54,7 @@ data EwmhAtom =
     -- Window Manager Protocols
     | NET_WM_PING
     | NET_WM_SYNC_REQUEST
+    | NET_WM_SYNC_REQUEST_COUNTER
     | NET_WM_FULLSCREEN_MONITORS
 
     -- Other Properties
