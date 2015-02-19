@@ -66,6 +66,29 @@ instance Hashable EwmhAtom where
 instance AtomLike EwmhAtom where
     toAtomName a = '_' : show a
 
+data NetWmWindowType =
+      NET_WM_WINDOW_TYPE_DESKTOP
+    | NET_WM_WINDOW_TYPE_DOCK
+    | NET_WM_WINDOW_TYPE_TOOLBAR
+    | NET_WM_WINDOW_TYPE_MENU
+    | NET_WM_WINDOW_TYPE_UTILITY
+    | NET_WM_WINDOW_TYPE_SPLASH
+    | NET_WM_WINDOW_TYPE_DIALOG
+    | NET_WM_WINDOW_TYPE_DROPDOWN_MENU
+    | NET_WM_WINDOW_TYPE_POPUP_MENU
+    | NET_WM_WINDOW_TYPE_TOOLTIP
+    | NET_WM_WINDOW_TYPE_NOTIFICATION
+    | NET_WM_WINDOW_TYPE_COMBO
+    | NET_WM_WINDOW_TYPE_DND
+    | NET_WM_WINDOW_TYPE_NORMAL
+    deriving (Enum, Eq, Ord, Read, Show, Typeable)
+
+instance Hashable NetWmWindowType where
+    hashWithSalt s = hashWithSalt s . show
+
+instance AtomLike NetWmWindowType where
+    toAtomName a = '_' : show a
+
 data NetWmState =
       NET_WM_STATE_MODAL
     | NET_WM_STATE_STICKY
@@ -80,6 +103,7 @@ data NetWmState =
     | NET_WM_STATE_BELOW
     | NET_WM_STATE_DEMANDS_ATTENTION
     | NET_WM_STATE_FOCUSED
+    deriving (Enum, Eq, Ord, Read, Show, Typeable)
 
 instance Hashable NetWmState where
     hashWithSalt s = hashWithSalt s . show
@@ -87,5 +111,23 @@ instance Hashable NetWmState where
 instance AtomLike NetWmState where
     toAtomName a = '_' : show a
 
+data NetWmAllowedActions =
+      NET_WM_ACTION_MOVE
+    | NET_WM_ACTION_RESIZE
+    | NET_WM_ACTION_MINIMIZE
+    | NET_WM_ACTION_SHADE
+    | NET_WM_ACTION_STICK
+    | NET_WM_ACTION_MAXIMIZE_HORZ
+    | NET_WM_ACTION_MAXIMIZE_VERT
+    | NET_WM_ACTION_FULLSCREEN
+    | NET_WM_ACTION_CHANGE_DESKTOP
+    | NET_WM_ACTION_CLOSE
+    | NET_WM_ACTION_ABOVE
+    | NET_WM_ACTION_BELOW
     deriving (Enum, Eq, Ord, Read, Show, Typeable)
 
+instance Hashable NetWmAllowedActions where
+    hashWithSalt s = hashWithSalt s . show
+
+instance AtomLike NetWmAllowedActions where
+    toAtomName a = '_' : show a
