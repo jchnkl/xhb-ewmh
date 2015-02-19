@@ -6,6 +6,15 @@ import Data.Typeable (Typeable)
 import Data.Hashable (Hashable(..))
 import Graphics.XHB.Atom
 
+data Utf8String = UTF8_STRING
+    deriving (Enum, Eq, Ord, Read, Show, Typeable)
+
+instance Hashable Utf8String where
+    hashWithSalt s = hashWithSalt s . show
+
+instance AtomLike Utf8String where
+    toAtomName a = '_' : show a
+
 data EwmhAtom =
     -- Root Window Properties
       NET_SUPPORTED
