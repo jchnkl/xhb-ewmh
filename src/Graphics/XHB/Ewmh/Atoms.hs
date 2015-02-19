@@ -3,13 +3,10 @@
 module Graphics.XHB.Ewmh.Atoms where
 
 import Data.Typeable (Typeable)
+import Data.Hashable (Hashable(..))
+import Graphics.XHB.Atom
 
-class Show a => EwmhAtom a where
-    toAtomString :: a -> String
-    toAtomString a = '_' : show a
-
-data EWMH_ATOM =
-
+data EwmhAtom =
     -- Root Window Properties
       NET_SUPPORTED
     | NET_CLIENT_LIST
@@ -53,8 +50,24 @@ data EWMH_ATOM =
     | NET_WM_OPAQUE_REGION
     | NET_WM_BYPASS_COMPOSITOR
 
-    -- NET_WM_STATE
-    | NET_WM_STATE_MODAL
+    -- Window Manager Protocols
+    | NET_WM_PING
+    | NET_WM_SYNC_REQUEST
+    | NET_WM_FULLSCREEN_MONITORS
+
+    -- Other Properties
+    | NET_WM_FULL_PLACEMENT
+
+    deriving (Enum, Eq, Ord, Read, Show, Typeable)
+
+instance Hashable EwmhAtom where
+    hashWithSalt s = hashWithSalt s . show
+
+instance AtomLike EwmhAtom where
+    toAtomName a = '_' : show a
+
+data NetWmState =
+      NET_WM_STATE_MODAL
     | NET_WM_STATE_STICKY
     | NET_WM_STATE_MAXIMIZED_VERT
     | NET_WM_STATE_MAXIMIZED_HORZ
@@ -68,14 +81,11 @@ data EWMH_ATOM =
     | NET_WM_STATE_DEMANDS_ATTENTION
     | NET_WM_STATE_FOCUSED
 
-    -- Window Manager Protocols
-    | NET_WM_PING
-    | NET_WM_SYNC_REQUEST
-    | NET_WM_FULLSCREEN_MONITORS
+instance Hashable NetWmState where
+    hashWithSalt s = hashWithSalt s . show
 
-    -- Other Properties
-    | NET_WM_FULL_PLACEMENT
+instance AtomLike NetWmState where
+    toAtomName a = '_' : show a
 
     deriving (Enum, Eq, Ord, Read, Show, Typeable)
 
-instance EwmhAtom EWMH_ATOM
