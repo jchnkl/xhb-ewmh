@@ -5,7 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ConstraintKinds #-}
 
-module Graphics.XHB.Ewmh.Simple
+module Graphics.XHB.Ewmh.Basic
     where
     -- ( module Graphics.XHB.Ewmh.Types
     -- -- , Utf8String(..)
@@ -37,12 +37,12 @@ import Control.Applicative (Applicative(..), (<$>))
 import Control.Monad.IO.Class (MonadIO(..))
 
 import Graphics.XHB
--- import Graphics.XHB.Atom (MonadAtom(..), AtomLike(..), runAtomT, seedAtoms, atomName)
-import Graphics.XHB.Atom -- (MonadAtom(..), AtomLike(..), runAtomT, seedAtoms, atomName)
+import Graphics.XHB.Atom
+import Graphics.XHB.Ewmh.Values
 import Graphics.XHB.Ewmh.Atoms
 import Graphics.XHB.Ewmh.Types
 
-type SimpleEwmhCtx m = (Applicative m, MonadIO m, MonadEwmh m)
+type BasicEwmhCtx m = (Applicative m, MonadIO m, MonadEwmh m)
 
 fe :: (Enum a, Integral b) => a -> b
 fe = fromIntegral . fromEnum
@@ -341,7 +341,7 @@ netRestackWindow win s = ewmhRequest win "_NET_RESTACK_WINDOW" [toWord s]
     where toWord = fromIntegral . fromEnum
 -}
 
-getNetSupported :: SimpleEwmhCtx m => Connection -> m (Either SomeError NetSupported)
+getNetSupported :: BasicEwmhCtx m => Connection -> m (Either SomeError NetSupported)
 getNetSupported c = runExceptT $ do
     atomids <- mapM lookupAtomId
         =<< eitherToExcept
@@ -359,7 +359,7 @@ leftToMaybe :: Either a b -> Maybe a
 leftToMaybe (Left  a) = Just a
 leftToMaybe (Right _) = Nothing
 
-setNetSupported :: SimpleEwmhCtx m => Connection -> NetSupported -> m ()
+setNetSupported :: BasicEwmhCtx m => Connection -> NetSupported -> m ()
 setNetSupported c ns = do
     supported <- unsafeLookupATOM NET_SUPPORTED
     state     <- unsafeLookupATOM NET_WM_STATE

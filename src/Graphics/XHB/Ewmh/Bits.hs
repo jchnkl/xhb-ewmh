@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
-module Graphics.XHB.Ewmh.Bits where
+module Graphics.XHB.Ewmh.Values where
 
 import Data.Typeable (Typeable)
 import Graphics.XHB (BitEnum(..))
