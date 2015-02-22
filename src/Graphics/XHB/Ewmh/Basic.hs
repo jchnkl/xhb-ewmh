@@ -30,12 +30,14 @@ import Data.Word (Word8, Word32)
 import Data.Binary.Put (Put, runPut, putWord8, putWord16host, putWord32host)
 import Data.ByteString.Lazy (unpack)
 import Data.Maybe (catMaybes)
-import Control.Monad (join, replicateM_)
+import Control.Monad (join, replicateM_, void)
 import Control.Monad.Except (MonadError(..), ExceptT(..), runExceptT)
 import Control.Monad.State (gets)
 import Control.Applicative (Applicative(..), (<$>))
 import Control.Monad.IO.Class (MonadIO(..))
+import Control.Monad.Trans.Maybe (MaybeT(..))
 
+import Foreign.C (CChar(..))
 import Graphics.XHB
 import Graphics.XHB.Atom
 import Graphics.XHB.Ewmh.Values
@@ -363,6 +365,35 @@ netRestackWindow :: MonadEwmh m => WINDOW -> SOURCE_INDICATION -> m (Either Some
 netRestackWindow win s = ewmhRequest win "_NET_RESTACK_WINDOW" [toWord s]
     where toWord = fromIntegral . fromEnum
 -}
+
+hoistMaybe :: Monad m => Maybe a -> MaybeT m a
+hoistMaybe = MaybeT . return
+
+-- | Send an Ewmh request for `WINDOW` to the root window
+sendRequest :: (AtomLike a, Serialize d, BasicEwmhCtx m)
+            => Connection -> WINDOW -> a -> d -> m ()
+sendRequest c w a d = void . runMaybeT $ do
+    lookupATOM a >>= hoistMaybe >>= send
+    where
+    send = liftIO . sendEvent c . request (getRoot c) . serializeEvent
+
+    serializeEvent = map (CChar . fromIntegral) . toBytes . event
+
+    event typ = MkClientMessageEvent
+        { format_ClientMessageEvent = 32
+        , window_ClientMessageEvent = w
+        , type_ClientMessageEvent = typ
+        , data_ClientMessageEvent = ClientData8 $ toBytes d
+        }
+
+    request win raw = MkSendEvent
+        { propagate_SendEvent = False
+        , destination_SendEvent = win
+        , event_mask_SendEvent = [ EventMaskSubstructureNotify
+                                 , EventMaskSubstructureRedirect
+                                 ]
+        , event_SendEvent = raw
+        }
 
 getNetSupported :: BasicEwmhCtx m => Connection -> m (Either SomeError NetSupported)
 getNetSupported c = runExceptT $ do
