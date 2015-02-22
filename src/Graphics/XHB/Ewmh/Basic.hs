@@ -280,16 +280,24 @@ getXids c w al prop_type = unsafeLookupATOM al >>= \a -> do
         <$> simpleGetProperty c w a (fromXid . toXid $ prop_type)
     where toXids = map (fromXid . toXid) . toWords
 
+setProp :: (AtomLike a, XidLike p, Serialize v, BasicEwmhCtx m)
+        => Connection -> WINDOW -> a -> p -> v -> m ()
+setProp c w al pt v = unsafeLookupATOM al >>= \a -> do
+    simpleChangeProperty c w a type_ PropModeReplace $ toBytes v
+    where type_  = fromXid (toXid pt)
+
 setXids :: (AtomLike a, XidLike p, XidLike v, BasicEwmhCtx m)
         => Connection -> WINDOW -> a -> p -> [v] -> m ()
-setXids c w al pt vs = unsafeLookupATOM al >>= \a -> do
-    simpleChangeProperty c w a type_ PropModeReplace $ toBytes values
-    where type_  = fromXid (toXid pt)
-          values = map (fromXid . toXid) vs :: [Word32]
+setXids c w al pt vs = setProp c w al pt values
+    where values = map (fromXid . toXid) vs :: [Word32]
 
 getRootXids :: (AtomLike a, XidLike p, XidLike v, BasicEwmhCtx m)
             => Connection -> a -> p -> m (Either SomeError [v])
 getRootXids c = getXids c (getRoot c)
+
+setRootProp :: (AtomLike a, XidLike p, Serialize v, BasicEwmhCtx m)
+            => Connection -> a -> p -> v -> m ()
+setRootProp c = setProp c (getRoot c)
 
 setRootXids :: (AtomLike a, XidLike p, XidLike v, BasicEwmhCtx m)
             => Connection -> a -> p -> [v] -> m ()
@@ -483,7 +491,6 @@ getNetSupported c = runExceptT $ do
 
 setNetSupported :: BasicEwmhCtx m => Connection -> NetSupported -> m ()
 setNetSupported c ns = do
-    supported <- unsafeLookupATOM NET_SUPPORTED
     state     <- unsafeLookupATOM NET_WM_STATE
     types     <- unsafeLookupATOM NET_WM_WINDOW_TYPE
     actions   <- unsafeLookupATOM NET_WM_ALLOWED_ACTIONS
@@ -493,7 +500,7 @@ setNetSupported c ns = do
     atoms''   <- insertAt types   atoms'  <$> mapM unsafeLookupATOM (netWmWindowTypes ns)
     atoms'''  <- insertAt actions atoms'' <$> mapM unsafeLookupATOM (netWmAllowedActions ns)
 
-    changeRootProperty c supported (atomToXidLike AtomATOM) PropModeReplace $ concatMap toBytes atoms'''
+    setRootXids c NET_SUPPORTED AtomATOM atoms'''
 
     where
     insertAt :: Eq t => t -> [t] -> [t] -> [t]
@@ -507,9 +514,7 @@ getNetClientList c = runExceptT $ do
         >>= fmap (map fromXid) . eitherToExcept
 
 setNetClientList :: BasicEwmhCtx m => Connection -> [WINDOW] -> m ()
-setNetClientList c windows = do
-    netclientlist <- unsafeLookupATOM NET_CLIENT_LIST
-    changeRootProperty c netclientlist (atomToXidLike AtomWINDOW) PropModeReplace (toBytes windows)
+setNetClientList c = setRootXids c NET_CLIENT_LIST AtomWINDOW
 
 getNetClientListStacking :: BasicEwmhCtx m => Connection -> m (Either SomeError [WINDOW])
 getNetClientListStacking c = runExceptT $ do
@@ -517,9 +522,7 @@ getNetClientListStacking c = runExceptT $ do
         >>= fmap (map fromXid) . eitherToExcept
 
 setNetClientListStacking :: BasicEwmhCtx m => Connection -> [WINDOW] -> m ()
-setNetClientListStacking c v = do
-    netclientlist <- unsafeLookupATOM NET_CLIENT_LIST_STACKING
-    changeRootProperty c netclientlist (atomToXidLike AtomWINDOW) PropModeReplace (toBytes v)
+setNetClientListStacking c = setRootXids c NET_CLIENT_LIST_STACKING AtomWINDOW
 
 getNetNumberOfDesktops :: BasicEwmhCtx m => Connection -> m (Either SomeError Word32)
 getNetNumberOfDesktops c = getRootXid c NET_NUMBER_OF_DESKTOPS AtomCARDINAL
@@ -534,9 +537,7 @@ getNetDesktopGeometry c = toTuple <$> getRootXids c NET_DESKTOP_GEOMETRY AtomCAR
           toTuple (Left e)        = Left e
 
 setNetDesktopGeometry :: BasicEwmhCtx m => Connection -> (Word32, Word32) -> m ()
-setNetDesktopGeometry c v = do
-    netclientlist <- unsafeLookupATOM NET_DESKTOP_GEOMETRY
-    changeRootProperty c netclientlist (atomToXidLike AtomCARDINAL) PropModeReplace (toBytes v)
+setNetDesktopGeometry c = setRootProp c NET_DESKTOP_GEOMETRY AtomCARDINAL
 
 getNetDesktopViewport :: BasicEwmhCtx m => Connection -> m (Either SomeError [(Word32, Word32)])
 getNetDesktopViewport c = runExceptT $ do
@@ -546,9 +547,7 @@ getNetDesktopViewport c = runExceptT $ do
           toTuples _          = []
 
 setNetDesktopViewport :: BasicEwmhCtx m => Connection -> [(Word32, Word32)] -> m ()
-setNetDesktopViewport c v = do
-    netclientlist <- unsafeLookupATOM NET_DESKTOP_VIEWPORT
-    changeRootProperty c netclientlist (atomToXidLike AtomCARDINAL) PropModeReplace (toBytes v)
+setNetDesktopViewport c = setRootProp c NET_DESKTOP_VIEWPORT AtomCARDINAL
 
 getNetCurrentDesktop :: BasicEwmhCtx m => Connection -> m (Either SomeError Word32)
 getNetCurrentDesktop c = getRootXid c NET_CURRENT_DESKTOP AtomCARDINAL
@@ -577,9 +576,7 @@ getNetWorkarea c = toTuple <$> getRootXids c NET_WORKAREA AtomCARDINAL
           toTuple (Left e)            = Left e
 
 setNetWorkarea :: BasicEwmhCtx m => Connection -> (Word32, Word32, Word32, Word32) -> m ()
-setNetWorkarea c v = do
-    netclientlist <- unsafeLookupATOM NET_WORKAREA
-    changeRootProperty c netclientlist (atomToXidLike AtomCARDINAL) PropModeReplace (toBytes v)
+setNetWorkarea c = setRootProp c NET_WORKAREA AtomCARDINAL
 
 getNetSupportingWmCheck :: BasicEwmhCtx m => Connection -> m (Either SomeError WINDOW)
 getNetSupportingWmCheck c = getRootXid c NET_SUPPORTING_WM_CHECK AtomWINDOW
@@ -593,9 +590,7 @@ getNetVirtualRoots c = runExceptT $ do
         >>= fmap (map fromXid) . eitherToExcept
 
 setNetVirtualRoots :: BasicEwmhCtx m => Connection -> [WINDOW] -> m ()
-setNetVirtualRoots c v = do
-    netclientlist <- unsafeLookupATOM NET_VIRTUAL_ROOTS
-    changeRootProperty c netclientlist (atomToXidLike AtomWINDOW) PropModeReplace (toBytes v)
+setNetVirtualRoots c = setRootXids c NET_VIRTUAL_ROOTS AtomWINDOW
 
 getNetDesktopLayout :: BasicEwmhCtx m => Connection -> m (Either SomeError NetDesktopLayout)
 getNetDesktopLayout conn = do
@@ -611,9 +606,7 @@ getNetDesktopLayout conn = do
     toNetDesktopLayout (Right _) = Left . toError $ UnknownError "getNetDesktopLayout: no values"
 
 setNetDesktopLayout :: BasicEwmhCtx m => Connection -> NetDesktopLayout -> m ()
-setNetDesktopLayout c dl = do
-    prop <- unsafeLookupATOM NET_DESKTOP_LAYOUT
-    changeRootProperty c prop (atomToXidLike AtomCARDINAL) PropModeReplace (toBytes dl)
+setNetDesktopLayout c = setRootProp c NET_DESKTOP_LAYOUT AtomCARDINAL
 
 getNetShowingDesktop :: BasicEwmhCtx m => Connection -> m (Either SomeError Word32)
 getNetShowingDesktop c = getRootXid c NET_SHOWING_DESKTOP AtomCARDINAL
