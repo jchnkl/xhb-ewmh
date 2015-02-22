@@ -273,11 +273,19 @@ setRootXid :: (AtomLike a, XidLike p, XidLike v, BasicEwmhCtx m)
            => Connection -> a -> p -> v -> m ()
 setRootXid c = setXid c (getRoot c)
 
-getWindowAtomList :: (MonadIO m, Functor m)
-                  => Connection -> WINDOW -> ATOM -> m (Either SomeError [ATOM])
-getWindowAtomList c w prop = fmap toATOMs <$> simpleGetProperty c w prop type_
-    where type_   = fromXid $ toXid (toValue AtomATOM :: Word32)
-          toATOMs = map fromXidLike . toWords . value_GetPropertyReply
+getXids :: (AtomLike a, XidLike p, XidLike v, BasicEwmhCtx m)
+        => Connection -> WINDOW -> a -> p -> m (Either SomeError [v])
+getXids c w al prop_type = unsafeLookupATOM al >>= \a -> do
+    fmap (toXids . value_GetPropertyReply)
+        <$> simpleGetProperty c w a (fromXid . toXid $ prop_type)
+    where toXids = map (fromXid . toXid) . toWords
+
+setXids :: (AtomLike a, XidLike p, XidLike v, BasicEwmhCtx m)
+        => Connection -> WINDOW -> a -> p -> [v] -> m ()
+setXids c w al pt vs = unsafeLookupATOM al >>= \a -> do
+    simpleChangeProperty c w a type_ PropModeReplace $ toBytes values
+    where type_  = fromXid (toXid pt)
+          values = map (fromXid . toXid) vs :: [Word32]
 
 getRootProperty :: MonadIO m => Connection -> ATOM -> ATOM -> m (Either SomeError GetPropertyReply)
 getRootProperty c prop typ_ = simpleGetProperty c (getRoot c) prop typ_
@@ -705,7 +713,6 @@ setNetWmVisibleIconName :: BasicEwmhCtx m => Connection -> WINDOW -> [String] ->
 setNetWmVisibleIconName c w v = unsafeLookupATOM NET_WM_VISIBLE_ICON_NAME >>= flip (setUtf8String c w) v
 
 getNetWmDesktop :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError Word32)
--- getNetWmDesktop c w = unsafeLookupATOM NET_WM_DESKTOP >>= flip (getXid c w) AtomCARDINAL
 getNetWmDesktop c w = getXid c w NET_WM_DESKTOP AtomCARDINAL
 
 setNetWmDesktop :: BasicEwmhCtx m => Connection -> WINDOW -> Word32 -> m ()
@@ -713,10 +720,12 @@ setNetWmDesktop c w = setXid c w NET_WM_DESKTOP AtomCARDINAL
 
 getNetWmState :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError [NetWmState])
 getNetWmState c w = runExceptT $ do
-    unsafeLookupATOM NET_WM_STATE
-        >>= getWindowAtomList c w
+    getXids c w NET_WM_STATE AtomATOM
         >>= eitherToExcept
         >>= fmap (catMaybes . map fromAtom . catMaybes) . mapM lookupAtomId
+
+setNetWmState :: BasicEwmhCtx m => Connection -> WINDOW -> [NetWmState] -> m ()
+setNetWmState c w vs = mapM unsafeLookupATOM vs >>= setXids c w NET_WM_STATE AtomATOM
 
 
 
