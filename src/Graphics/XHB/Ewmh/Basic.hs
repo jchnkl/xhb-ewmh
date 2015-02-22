@@ -84,8 +84,14 @@ toWords :: [Word8] -> [Word32]
 toWords (a:b:c:d:rest) = toWord (a,b,c,d) : toWords rest
 toWords _              = []
 
-toXidLike :: XidLike a => [Word8] -> Maybe a
-toXidLike = fmap fromXidLike . fromBytes
+bytesToXidLike :: XidLike a => [Word8] -> Maybe a
+bytesToXidLike = fmap fromXidLike . fromBytes
+
+toXidLike :: XidLike a => GetPropertyReply -> Maybe a
+toXidLike = fmap fromXidLike . fromBytes . value_GetPropertyReply
+
+toXidLikeList :: XidLike a => GetPropertyReply -> [a]
+toXidLikeList = map fromXidLike . toWords . value_GetPropertyReply
 
 splitOn :: (Eq a) => a -> [a] -> [[a]]
 splitOn delim = splitOn' [] []
