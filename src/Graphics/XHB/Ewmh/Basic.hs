@@ -26,6 +26,7 @@ module Graphics.XHB.Ewmh.Basic
 import qualified Data.HashMap.Lazy as M
 import Data.Bits (Bits, (.|.), setBit, shiftL)
 import Data.Char (chr, ord)
+import Data.List (intersperse)
 import Data.Word (Word8, Word32)
 import Data.Binary.Put (Put, runPut, putWord8, putWord16host, putWord32host)
 import Data.ByteString.Lazy (unpack)
@@ -205,21 +206,6 @@ simpleGetProperty c win prop prop_type = do
         , long_length_GetProperty = maxBound
         }
 
-getWindowAtomList :: (MonadIO m, Functor m)
-                  => Connection -> WINDOW -> ATOM -> m (Either SomeError [ATOM])
-getWindowAtomList c w prop = fmap toATOMs <$> simpleGetProperty c w prop type_
-    where type_   = fromXid $ toXid (toValue AtomATOM :: Word32)
-          toATOMs = map fromXidLike . toWords . value_GetPropertyReply
-
-getRootProperty :: MonadIO m => Connection -> ATOM -> ATOM -> m (Either SomeError GetPropertyReply)
-getRootProperty c prop typ_ = simpleGetProperty c (getRoot c) prop typ_
-
-getRootAtomList :: (MonadIO m, Functor m)
-                => Connection -> ATOM -> m (Either SomeError [ATOM])
-getRootAtomList c prop = fmap toATOMs <$> getRootProperty c prop type_
-    where type_   = fromXid $ toXid (toValue AtomATOM :: Word32)
-          toATOMs = map fromXidLike . toWords . value_GetPropertyReply
-
 simpleChangeProperty :: MonadIO m
                      => Connection
                      -> WINDOW -- ^ Target window
@@ -241,9 +227,71 @@ simpleChangeProperty c window prop prop_type prop_mode values = do
         , data_ChangeProperty = values
         }
 
+getXid' :: (XidLike p, XidLike v, MonadIO m, Functor m)
+       => Connection -> WINDOW -> ATOM -> p -> m (Either SomeError v)
+getXid' c w prop prop_type = runExceptT $ do
+    simpleGetProperty c w prop (fromXid . toXid $ prop_type)
+        >>= fmap (fromBytes . value_GetPropertyReply) . eitherToExcept
+        >>= eitherToExcept . maybe toLeft toRight
+    where
+    toLeft   = Left . toError $ UnknownError "getRootXid: no value"
+    toRight  = Right . fromXidLike
+
+getXid :: (AtomLike a, XidLike p, XidLike v, BasicEwmhCtx m)
+       => Connection -> WINDOW -> a -> p -> m (Either SomeError v)
+getXid c w al prop_type = runExceptT $ unsafeLookupATOM al >>= \a -> do
+    simpleGetProperty c w a (fromXid . toXid $ prop_type)
+        >>= fmap (fromBytes . value_GetPropertyReply) . eitherToExcept
+        >>= eitherToExcept . maybe toLeft toRight
+    where
+    toLeft   = Left . toError $ UnknownError "getRootXid: no value"
+    toRight  = Right . fromXidLike
+
+setXid' :: (XidLike p, XidLike v, MonadIO m, Functor m)
+       => Connection -> WINDOW -> ATOM -> p -> v -> m ()
+setXid' c w prop prop_type v = do
+    simpleChangeProperty c w prop (fromXid . toXid $ prop_type) PropModeReplace $ toBytes value
+    where value = fromXid (toXid v) :: Word32
+
+setXid :: (AtomLike a, XidLike p, XidLike v, BasicEwmhCtx m)
+       => Connection -> WINDOW -> a -> p -> v -> m ()
+setXid c w al pt v = unsafeLookupATOM al >>= \a -> do
+    simpleChangeProperty c w a type_ PropModeReplace $ toBytes value
+    where type_ = fromXid (toXid pt)
+          value = fromXid (toXid v) :: Word32
+
+getRootXid :: (AtomLike a, XidLike p, XidLike v, BasicEwmhCtx m)
+       => Connection -> a -> p -> m (Either SomeError v)
+getRootXid c = getXid c (getRoot c)
+
+getWindowAtomList :: (MonadIO m, Functor m)
+                  => Connection -> WINDOW -> ATOM -> m (Either SomeError [ATOM])
+getWindowAtomList c w prop = fmap toATOMs <$> simpleGetProperty c w prop type_
+    where type_   = fromXid $ toXid (toValue AtomATOM :: Word32)
+          toATOMs = map fromXidLike . toWords . value_GetPropertyReply
+
+getRootProperty :: MonadIO m => Connection -> ATOM -> ATOM -> m (Either SomeError GetPropertyReply)
+getRootProperty c prop typ_ = simpleGetProperty c (getRoot c) prop typ_
+
+getRootXidList :: (XidLike a, MonadIO m, Functor m)
+                => Connection -> Atom -> ATOM -> m (Either SomeError [a])
+getRootXidList c prop_type prop = fmap toXidLikeList <$> getRootProperty c prop type_
+    where type_ = fromXid $ toXid (toValue prop_type :: Word32)
+
 changeRootProperty :: MonadIO m
                    => Connection -> ATOM -> ATOM -> PropMode -> [Word8] -> m ()
 changeRootProperty c p t pm vs = simpleChangeProperty c (getRoot c) p t pm vs
+
+getUtf8String :: BasicEwmhCtx m => Connection -> WINDOW -> ATOM -> m (Either SomeError [String])
+getUtf8String c w prop = do
+    type_ <- unsafeLookupATOM UTF8_STRING
+    fmap (toString . value_GetPropertyReply) <$> simpleGetProperty c w prop type_
+
+setUtf8String :: BasicEwmhCtx m => Connection -> WINDOW -> ATOM -> [String] -> m ()
+setUtf8String c w prop strs = do
+    type_ <- unsafeLookupATOM UTF8_STRING
+    simpleChangeProperty c w prop type_ PropModeReplace $ toBytes (intersperse "\0" strs)
+    -- fmap (toString . value_GetPropertyReply) <$> simpleGetProperty c w prop type_
 
 {-
 getString :: (Functor m, MonadEwmh m) => WINDOW -> String -> m (Either SomeError [String])
