@@ -113,8 +113,31 @@ class Serialize a where
     toBytes :: a -> [Word8]
     toBytes = unpack . runPut . serialize
 
+instance Serialize a => Serialize [a] where
+    serialize = mapM_ serialize
+    toBytes = concatMap toBytes
+
+instance (Serialize a, Serialize b) => Serialize (a, b) where
+    serialize (a,b) = serialize a >> serialize b
+    toBytes (a, b) = toBytes a ++ toBytes b
+
+instance (Serialize a, Serialize b, Serialize c) => Serialize (a, b, c) where
+    serialize (a,b,c) = serialize a >> serialize b >> serialize c
+    toBytes (a, b,c) = toBytes a ++ toBytes b ++ toBytes c
+
+instance (Serialize a, Serialize b, Serialize c, Serialize d) => Serialize (a, b, c, d) where
+    serialize (a,b,c,d) = serialize a >> serialize b >> serialize c >> serialize d
+    toBytes (a, b,c,d) = toBytes a ++ toBytes b ++ toBytes c ++ toBytes d
+
+instance Serialize Char where
+    serialize = putWord8 . fromIntegral . ord
+
 instance Serialize Word32 where
     serialize = putWord32host
+
+instance Serialize Int where
+    -- this might cause some breakage, but practically `#define`s are not < 0
+    serialize = putWord32host . fromIntegral
 
 instance Serialize ATOM where
     serialize v = putWord32host (fromXid $ toXid v :: Word32)
