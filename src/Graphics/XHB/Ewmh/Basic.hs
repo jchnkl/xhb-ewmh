@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 {-# LANGUAGE DeriveDataTypeable  #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE FlexibleInstances   #-}
@@ -264,8 +266,12 @@ setXid c w al pt v = unsafeLookupATOM al >>= \a -> do
           value = fromXid (toXid v) :: Word32
 
 getRootXid :: (AtomLike a, XidLike p, XidLike v, BasicEwmhCtx m)
-       => Connection -> a -> p -> m (Either SomeError v)
+           => Connection -> a -> p -> m (Either SomeError v)
 getRootXid c = getXid c (getRoot c)
+
+setRootXid :: (AtomLike a, XidLike p, XidLike v, BasicEwmhCtx m)
+           => Connection -> a -> p -> v -> m ()
+setRootXid c = setXid c (getRoot c)
 
 getWindowAtomList :: (MonadIO m, Functor m)
                   => Connection -> WINDOW -> ATOM -> m (Either SomeError [ATOM])
@@ -514,9 +520,7 @@ getNetNumberOfDesktops :: BasicEwmhCtx m => Connection -> m (Either SomeError Wo
 getNetNumberOfDesktops c = getRootXid c NET_NUMBER_OF_DESKTOPS AtomCARDINAL
 
 setNetNumberOfDesktops :: BasicEwmhCtx m => Connection -> Word32 -> m ()
-setNetNumberOfDesktops c v = do
-    netclientlist <- unsafeLookupATOM NET_NUMBER_OF_DESKTOPS
-    changeRootProperty c netclientlist (atomToXidLike AtomCARDINAL) PropModeReplace (toBytes v)
+setNetNumberOfDesktops c = setRootXid c NET_NUMBER_OF_DESKTOPS AtomCARDINAL
 
 getNetDesktopGeometry :: BasicEwmhCtx m => Connection -> m (Either SomeError (Word32, Word32))
 getNetDesktopGeometry c = runExceptT $ do
@@ -549,9 +553,7 @@ getNetCurrentDesktop :: BasicEwmhCtx m => Connection -> m (Either SomeError Word
 getNetCurrentDesktop c = getRootXid c NET_CURRENT_DESKTOP AtomCARDINAL
 
 setNetCurrentDesktop :: BasicEwmhCtx m => Connection -> Word32 -> m ()
-setNetCurrentDesktop c v = do
-    netclientlist <- unsafeLookupATOM NET_CURRENT_DESKTOP
-    changeRootProperty c netclientlist (atomToXidLike AtomCARDINAL) PropModeReplace (toBytes v)
+setNetCurrentDesktop c = setRootXid c NET_CURRENT_DESKTOP AtomCARDINAL
 
 getNetDesktopNames :: BasicEwmhCtx m => Connection -> m (Either SomeError [String])
 getNetDesktopNames c = unsafeLookupATOM NET_DESKTOP_NAMES >>= getUtf8String c (getRoot c)
@@ -565,9 +567,7 @@ getActiveWindow :: BasicEwmhCtx m => Connection -> m (Either SomeError WINDOW)
 getActiveWindow c = getRootXid c NET_ACTIVE_WINDOW AtomWINDOW
 
 setActiveWindow :: BasicEwmhCtx m => Connection -> WINDOW -> m ()
-setActiveWindow c v = do
-    netclientlist <- unsafeLookupATOM NET_ACTIVE_WINDOW
-    changeRootProperty c netclientlist (atomToXidLike AtomWINDOW) PropModeReplace (toBytes v)
+setActiveWindow c = setRootXid c NET_ACTIVE_WINDOW AtomWINDOW
 
 getNetWorkarea :: BasicEwmhCtx m => Connection -> m (Either SomeError (Word32, Word32, Word32, Word32))
 getNetWorkarea c = do
@@ -585,9 +585,7 @@ getNetSupportingWmCheck :: BasicEwmhCtx m => Connection -> m (Either SomeError W
 getNetSupportingWmCheck c = getRootXid c NET_SUPPORTING_WM_CHECK AtomWINDOW
 
 setNetSupportingWmCheck :: BasicEwmhCtx m => Connection -> WINDOW -> m ()
-setNetSupportingWmCheck c v = do
-    netclientlist <- unsafeLookupATOM NET_SUPPORTING_WM_CHECK
-    changeRootProperty c netclientlist (atomToXidLike AtomWINDOW) PropModeReplace (toBytes v)
+setNetSupportingWmCheck c = setRootXid c NET_SUPPORTING_WM_CHECK AtomWINDOW
 
 getNetVirtualRoots :: BasicEwmhCtx m => Connection -> m (Either SomeError [WINDOW])
 getNetVirtualRoots c = runExceptT $ do
@@ -623,9 +621,7 @@ getNetShowingDesktop :: BasicEwmhCtx m => Connection -> m (Either SomeError Word
 getNetShowingDesktop c = getRootXid c NET_SHOWING_DESKTOP AtomCARDINAL
 
 setNetShowingDesktop :: BasicEwmhCtx m => Connection -> Word32 -> m ()
-setNetShowingDesktop c v = do
-    netclientlist <- unsafeLookupATOM NET_SHOWING_DESKTOP
-    changeRootProperty c netclientlist (atomToXidLike AtomCARDINAL) PropModeReplace (toBytes v)
+setNetShowingDesktop c = setRootXid c NET_SHOWING_DESKTOP AtomCARDINAL
 
 --------------------------------
 -- Other Root Window Messages --
