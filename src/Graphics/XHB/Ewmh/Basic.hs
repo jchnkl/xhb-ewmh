@@ -287,13 +287,13 @@ setXids c w al pt vs = unsafeLookupATOM al >>= \a -> do
     where type_  = fromXid (toXid pt)
           values = map (fromXid . toXid) vs :: [Word32]
 
-getRootProperty :: MonadIO m => Connection -> ATOM -> ATOM -> m (Either SomeError GetPropertyReply)
-getRootProperty c prop typ_ = simpleGetProperty c (getRoot c) prop typ_
+getRootXids :: (AtomLike a, XidLike p, XidLike v, BasicEwmhCtx m)
+            => Connection -> a -> p -> m (Either SomeError [v])
+getRootXids c = getXids c (getRoot c)
 
-getRootXidList :: (XidLike a, MonadIO m, Functor m)
-                => Connection -> Atom -> ATOM -> m (Either SomeError [a])
-getRootXidList c prop_type prop = fmap toXidLikeList <$> getRootProperty c prop type_
-    where type_ = fromXid $ toXid (toValue prop_type :: Word32)
+setRootXids :: (AtomLike a, XidLike p, XidLike v, BasicEwmhCtx m)
+            => Connection -> a -> p -> [v] -> m ()
+setRootXids c = setXids c (getRoot c)
 
 changeRootProperty :: MonadIO m
                    => Connection -> ATOM -> ATOM -> PropMode -> [Word8] -> m ()
@@ -472,8 +472,7 @@ getNetSupported :: BasicEwmhCtx m => Connection -> m (Either SomeError NetSuppor
 getNetSupported c = runExceptT $ do
     atomids <- mapM lookupAtomId
         =<< eitherToExcept
-        =<< getRootXidList c AtomATOM
-        =<< unsafeLookupATOM NET_SUPPORTED
+        =<< getRootXids c NET_SUPPORTED AtomATOM
     return $ NetSupported (atoms atomids) (states atomids) (actions atomids) (types atomids)
     where
     -- yeah..
@@ -504,8 +503,7 @@ setNetSupported c ns = do
 
 getNetClientList :: BasicEwmhCtx m => Connection -> m (Either SomeError [WINDOW])
 getNetClientList c = runExceptT $ do
-    unsafeLookupATOM NET_CLIENT_LIST
-        >>= getRootXidList c AtomWINDOW
+    getRootXids c NET_CLIENT_LIST AtomWINDOW
         >>= fmap (map fromXid) . eitherToExcept
 
 setNetClientList :: BasicEwmhCtx m => Connection -> [WINDOW] -> m ()
@@ -515,8 +513,7 @@ setNetClientList c windows = do
 
 getNetClientListStacking :: BasicEwmhCtx m => Connection -> m (Either SomeError [WINDOW])
 getNetClientListStacking c = runExceptT $ do
-    unsafeLookupATOM NET_CLIENT_LIST_STACKING
-        >>= getRootXidList c AtomWINDOW
+    getRootXids c NET_CLIENT_LIST_STACKING AtomWINDOW
         >>= fmap (map fromXid) . eitherToExcept
 
 setNetClientListStacking :: BasicEwmhCtx m => Connection -> [WINDOW] -> m ()
@@ -531,10 +528,7 @@ setNetNumberOfDesktops :: BasicEwmhCtx m => Connection -> Word32 -> m ()
 setNetNumberOfDesktops c = setRootXid c NET_NUMBER_OF_DESKTOPS AtomCARDINAL
 
 getNetDesktopGeometry :: BasicEwmhCtx m => Connection -> m (Either SomeError (Word32, Word32))
-getNetDesktopGeometry c = runExceptT $ do
-    unsafeLookupATOM NET_DESKTOP_GEOMETRY
-        >>= fmap toTuple . getRootXidList c AtomCARDINAL
-        >>= eitherToExcept
+getNetDesktopGeometry c = toTuple <$> getRootXids c NET_DESKTOP_GEOMETRY AtomCARDINAL
     where toTuple (Right (w:h:_)) = Right (w, h)
           toTuple (Right _)       = Left . toError $ UnknownError "getNetDesktopGeometry: no values"
           toTuple (Left e)        = Left e
@@ -546,8 +540,7 @@ setNetDesktopGeometry c v = do
 
 getNetDesktopViewport :: BasicEwmhCtx m => Connection -> m (Either SomeError [(Word32, Word32)])
 getNetDesktopViewport c = runExceptT $ do
-    unsafeLookupATOM NET_DESKTOP_VIEWPORT
-        >>= getRootXidList c AtomCARDINAL
+    getRootXids c NET_DESKTOP_VIEWPORT AtomCARDINAL
         >>= fmap (toTuples . map fromXid) . eitherToExcept
     where toTuples (x:y:rest) = (x,y) : toTuples rest
           toTuples _          = []
@@ -578,8 +571,7 @@ setActiveWindow :: BasicEwmhCtx m => Connection -> WINDOW -> m ()
 setActiveWindow c = setRootXid c NET_ACTIVE_WINDOW AtomWINDOW
 
 getNetWorkarea :: BasicEwmhCtx m => Connection -> m (Either SomeError (Word32, Word32, Word32, Word32))
-getNetWorkarea c = do
-    unsafeLookupATOM NET_WORKAREA >>= fmap toTuple . getRootXidList c AtomCARDINAL
+getNetWorkarea c = toTuple <$> getRootXids c NET_WORKAREA AtomCARDINAL
     where toTuple (Right (x:y:w:h:_)) = Right (x, y, w, h)
           toTuple (Right _)           = Left . toError $ UnknownError "getNetWorkarea: no values"
           toTuple (Left e)            = Left e
@@ -597,8 +589,7 @@ setNetSupportingWmCheck c = setRootXid c NET_SUPPORTING_WM_CHECK AtomWINDOW
 
 getNetVirtualRoots :: BasicEwmhCtx m => Connection -> m (Either SomeError [WINDOW])
 getNetVirtualRoots c = runExceptT $ do
-    unsafeLookupATOM NET_VIRTUAL_ROOTS
-        >>= getRootXidList c AtomWINDOW
+    getRootXids c NET_VIRTUAL_ROOTS AtomWINDOW
         >>= fmap (map fromXid) . eitherToExcept
 
 setNetVirtualRoots :: BasicEwmhCtx m => Connection -> [WINDOW] -> m ()
@@ -608,8 +599,7 @@ setNetVirtualRoots c v = do
 
 getNetDesktopLayout :: BasicEwmhCtx m => Connection -> m (Either SomeError NetDesktopLayout)
 getNetDesktopLayout conn = do
-    unsafeLookupATOM NET_DESKTOP_LAYOUT
-        >>= fmap toNetDesktopLayout . getRootXidList conn AtomCARDINAL
+    toNetDesktopLayout <$> getRootXids conn NET_DESKTOP_LAYOUT AtomCARDINAL
     where
     toNetDesktopLayout (Right (o:c:r:s:_)) = Right $ NetDesktopLayout
         { orientation     = fromBit $ fromIntegral (o :: Word32)
