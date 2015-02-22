@@ -709,32 +709,3 @@ getNetWmState c w = runExceptT $ do
 
 setNetWmState :: BasicEwmhCtx m => Connection -> WINDOW -> [NetWmState] -> m ()
 setNetWmState c w vs = mapM unsafeLookupATOM vs >>= setXids c w NET_WM_STATE AtomATOM
-
-
-
--- changeRootProperty :: MonadIO m
---                    => Connection -> ATOM -> ATOM -> PropMode -> [Word8] -> m ()
-    -- , netWmWindowTypes    :: [NetWmWindowType]
-    -- atoms = ewmhAtoms ns
-    -- ewmhAtoms           :: [EwmhAtom]
-    -- states = netWmStates ns
-    -- netWmAllowedActions :: [NetWmAllowedActions]
-    -- , netWmWindowTypes    :: [NetWmWindowType]
-
--- -- getNetWmState :: (MonadIO m, MonadEwmh m) => Connection -> m [NetWmState]
--- getNetWmState :: (MonadAtom m, MonadIO m, Functor m)
---               => Connection -> WINDOW -> m (Either SomeError [NetWmState])
--- getNetWmState c w = runExceptT $ do
---     unsafeLookupATOM NET_WM_STATE
---         >>= rootWindowAtomList c
---         >>= eitherToExcept
---         >>= fmap (catMaybes . map fromAtom . catMaybes) . mapM lookupAtomId
-
--- test c = map (atomName . lookupAtomId) . catMaybes <$> getNetSupported' c
-
--- setNetSupported :: (EwmhAtom a, MonadEwmh m) => [a] -> m ()
--- setNetSupported = undefined
-
--- foo :: MonadEwmh m => m ()
--- foo = do
---     getNetSupported
