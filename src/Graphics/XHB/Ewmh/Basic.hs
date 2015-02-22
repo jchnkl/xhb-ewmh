@@ -40,8 +40,9 @@ import Control.Monad.Trans.Maybe (MaybeT(..))
 
 import Foreign.C (CChar(..))
 import Graphics.XHB
-import Graphics.XHB.Atom
-import Graphics.XHB.Ewmh.Values
+-- import Graphics.XHB.Atom (MonadAtom(..), AtomLike(..), runAtomT, seedAtoms, atomName)
+import Graphics.XHB.Atom -- (MonadAtom(..), AtomLike(..), runAtomT, seedAtoms, atomName)
+import Graphics.XHB.Ewmh.Bits
 import Graphics.XHB.Ewmh.Atoms
 import Graphics.XHB.Ewmh.Types
 
@@ -174,6 +175,19 @@ instance Serialize ClientMessageData where
                                      putSkip16 (10 - length ws)
     serialize (ClientData32 ws) = do mapM_ putWord32host ws
                                      putSkip32 (5 - length ws)
+
+instance Serialize NET_DESKTOP_LAYOUT_ORIENTATION where
+    serialize = serialize . toBit
+
+instance Serialize NET_DESKTOP_LAYOUT_STARTING_CORNER where
+    serialize = serialize . toBit
+
+instance Serialize NetDesktopLayout where
+    serialize (NetDesktopLayout o s c r) = do
+        serialize o
+        serialize c
+        serialize r
+        serialize s
 
 dump :: Monad m => AtomT m [AtomName]
 dump = AtomT $ gets (map atomName . M.keys . fst)
