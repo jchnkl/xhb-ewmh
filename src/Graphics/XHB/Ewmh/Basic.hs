@@ -52,6 +52,10 @@ fe = fromIntegral . fromEnum
 (.=.) :: (Bits a) => a -> Int -> a
 (.=.) = setBit
 
+instance XidLike Atom where
+    toXid a = toXid (toValue a :: Word32)
+    fromXid a = fromValue (fromXid a :: Word32)
+
 fromXidLike :: (XidLike a, XidLike b) => a -> b
 fromXidLike = fromXid . toXid
 
