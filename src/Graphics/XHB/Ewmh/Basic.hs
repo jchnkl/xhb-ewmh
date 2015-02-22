@@ -246,16 +246,6 @@ simpleChangeProperty c window prop prop_type prop_mode values = do
         , data_ChangeProperty = values
         }
 
-getXid' :: (XidLike p, XidLike v, MonadIO m, Functor m)
-       => Connection -> WINDOW -> ATOM -> p -> m (Either SomeError v)
-getXid' c w prop prop_type = runExceptT $ do
-    simpleGetProperty c w prop (fromXid . toXid $ prop_type)
-        >>= fmap (fromBytes . value_GetPropertyReply) . eitherToExcept
-        >>= eitherToExcept . maybe toLeft toRight
-    where
-    toLeft   = Left . toError $ UnknownError "getRootXid: no value"
-    toRight  = Right . fromXidLike
-
 getXid :: (AtomLike a, XidLike p, XidLike v, BasicEwmhCtx m)
        => Connection -> WINDOW -> a -> p -> m (Either SomeError v)
 getXid c w al prop_type = runExceptT $ unsafeLookupATOM al >>= \a -> do
@@ -265,12 +255,6 @@ getXid c w al prop_type = runExceptT $ unsafeLookupATOM al >>= \a -> do
     where
     toLeft   = Left . toError $ UnknownError "getRootXid: no value"
     toRight  = Right . fromXidLike
-
-setXid' :: (XidLike p, XidLike v, MonadIO m, Functor m)
-       => Connection -> WINDOW -> ATOM -> p -> v -> m ()
-setXid' c w prop prop_type v = do
-    simpleChangeProperty c w prop (fromXid . toXid $ prop_type) PropModeReplace $ toBytes value
-    where value = fromXid (toXid v) :: Word32
 
 setXid :: (AtomLike a, XidLike p, XidLike v, BasicEwmhCtx m)
        => Connection -> WINDOW -> a -> p -> v -> m ()
