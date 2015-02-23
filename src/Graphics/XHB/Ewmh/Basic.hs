@@ -28,12 +28,9 @@ module Graphics.XHB.Ewmh.Basic
 import qualified Data.HashMap.Lazy as M
 import Data.Bits (Bits, (.|.), setBit, shiftL)
 import Data.Char (chr, ord)
-import Data.List (intersperse)
 import Data.Word (Word8, Word32)
-import Data.Binary.Put (Put, runPut, putWord8, putWord16host, putWord32host)
-import Data.ByteString.Lazy (unpack)
 import Data.Maybe (isJust, catMaybes, fromMaybe)
-import Control.Monad (join, replicateM_, void)
+import Control.Monad (join, void)
 import Control.Monad.Except (MonadError(..), ExceptT(..), runExceptT)
 import Control.Monad.State (gets)
 import Control.Applicative (Applicative(..), (<$>))
@@ -46,6 +43,7 @@ import Graphics.XHB.Atom
 import Graphics.XHB.Ewmh.Bits
 import Graphics.XHB.Ewmh.Atoms
 import Graphics.XHB.Ewmh.Types
+import Graphics.XHB.Ewmh.Serialize
 
 type BasicEwmhCtx m = (Applicative m, MonadIO m, MonadEwmh m)
 
@@ -113,15 +111,6 @@ eitherToExcept = ExceptT . return
 toString :: [Word8] -> [String]
 toString = map bytesToString . splitOn (fromIntegral (ord '\0') :: Word8)
 
-putSkip8 :: Int -> Put
-putSkip8 n = replicateM_ n $ putWord8 0
-
-putSkip16 :: Int -> Put
-putSkip16 n = replicateM_ n $ putWord16host 0
-
-putSkip32 :: Int -> Put
-putSkip32 n = replicateM_ n $ putWord32host 0
-
 class PropertyType a where
     propertyTypeAtom :: a -> Atom
     propertyTypeATOM :: MonadEwmh m => a -> m ATOM
@@ -188,73 +177,6 @@ instance PropertyType EWMH_ATOM where
 
         _ -> error $ "no propertyTypeATOM for " ++ show a
 
-class Serialize a where
-    serialize :: a -> Put
-
-    toBytes :: a -> [Word8]
-    toBytes = unpack . runPut . serialize
-
-instance Serialize a => Serialize [a] where
-    serialize = mapM_ serialize
-    toBytes = concatMap toBytes
-
-instance (Serialize a, Serialize b) => Serialize (a, b) where
-    serialize (a,b) = serialize a >> serialize b
-    toBytes (a, b) = toBytes a ++ toBytes b
-
-instance (Serialize a, Serialize b, Serialize c) => Serialize (a, b, c) where
-    serialize (a,b,c) = serialize a >> serialize b >> serialize c
-    toBytes (a, b,c) = toBytes a ++ toBytes b ++ toBytes c
-
-instance (Serialize a, Serialize b, Serialize c, Serialize d) => Serialize (a, b, c, d) where
-    serialize (a,b,c,d) = serialize a >> serialize b >> serialize c >> serialize d
-    toBytes (a, b,c,d) = toBytes a ++ toBytes b ++ toBytes c ++ toBytes d
-
-instance Serialize Char where
-    serialize = putWord8 . fromIntegral . ord
-
-instance Serialize Word32 where
-    serialize = putWord32host
-
-instance Serialize Int where
-    -- this might cause some breakage, but practically `#define`s are not < 0
-    serialize = putWord32host . fromIntegral
-
-instance Serialize ATOM where
-    serialize v = putWord32host (fromXid $ toXid v :: Word32)
-
-instance Serialize WINDOW where
-    serialize v = putWord32host (fromXid $ toXid v :: Word32)
-
-instance Serialize ClientMessageEvent where
-    serialize (MkClientMessageEvent fmt win typ dat) = do
-        putWord8 33 -- 33 ^= ClientMessageEvent
-        putWord8 fmt
-        putSkip8 2
-        serialize win
-        serialize typ
-        serialize dat
-
-instance Serialize ClientMessageData where
-    serialize (ClientData8  ws) = do mapM_ putWord8 ws
-                                     putSkip8 (20 - length ws)
-    serialize (ClientData16 ws) = do mapM_ putWord16host ws
-                                     putSkip16 (10 - length ws)
-    serialize (ClientData32 ws) = do mapM_ putWord32host ws
-                                     putSkip32 (5 - length ws)
-
-instance Serialize NET_DESKTOP_LAYOUT_ORIENTATION where
-    serialize = serialize . toBit
-
-instance Serialize NET_DESKTOP_LAYOUT_STARTING_CORNER where
-    serialize = serialize . toBit
-
-instance Serialize NetDesktopLayout where
-    serialize (NetDesktopLayout o s c r) = do
-        serialize o
-        serialize c
-        serialize r
-        serialize s
 
 dump :: Monad m => AtomT m [AtomName]
 dump = AtomT $ gets (map atomName . M.keys . fst)
