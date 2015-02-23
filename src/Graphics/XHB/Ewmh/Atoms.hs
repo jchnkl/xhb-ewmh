@@ -6,13 +6,13 @@ import Data.Typeable (Typeable)
 import Data.Hashable (Hashable(..))
 import Graphics.XHB.Atom
 
-data Utf8String = UTF8_STRING
+data UTF8_STRING = UTF8_STRING
     deriving (Enum, Eq, Ord, Read, Show, Typeable)
 
-instance Hashable Utf8String where
+instance Hashable UTF8_STRING where
     hashWithSalt s = hashWithSalt s . show
 
-instance AtomLike Utf8String where
+instance AtomLike UTF8_STRING where
     toAtomName a = '_' : show a
 
 data EwmhAtom =
@@ -77,7 +77,7 @@ instance Hashable EwmhAtom where
 instance AtomLike EwmhAtom where
     toAtomName a = '_' : show a
 
-data NetWmWindowType =
+data NET_WM_WINDOW_TYPE =
       NET_WM_WINDOW_TYPE_DESKTOP
     | NET_WM_WINDOW_TYPE_DOCK
     | NET_WM_WINDOW_TYPE_TOOLBAR
@@ -94,13 +94,13 @@ data NetWmWindowType =
     | NET_WM_WINDOW_TYPE_NORMAL
     deriving (Enum, Eq, Ord, Read, Show, Typeable)
 
-instance Hashable NetWmWindowType where
+instance Hashable NET_WM_WINDOW_TYPE where
     hashWithSalt s = hashWithSalt s . show
 
-instance AtomLike NetWmWindowType where
+instance AtomLike NET_WM_WINDOW_TYPE where
     toAtomName a = '_' : show a
 
-data NetWmState =
+data NET_WM_STATE =
       NET_WM_STATE_MODAL
     | NET_WM_STATE_STICKY
     | NET_WM_STATE_MAXIMIZED_VERT
@@ -116,13 +116,13 @@ data NetWmState =
     | NET_WM_STATE_FOCUSED
     deriving (Enum, Eq, Ord, Read, Show, Typeable)
 
-instance Hashable NetWmState where
+instance Hashable NET_WM_STATE where
     hashWithSalt s = hashWithSalt s . show
 
-instance AtomLike NetWmState where
+instance AtomLike NET_WM_STATE where
     toAtomName a = '_' : show a
 
-data NetWmAllowedActions =
+data NET_WM_ALLOWED_ACTIONS =
       NET_WM_ACTION_MOVE
     | NET_WM_ACTION_RESIZE
     | NET_WM_ACTION_MINIMIZE
@@ -137,8 +137,8 @@ data NetWmAllowedActions =
     | NET_WM_ACTION_BELOW
     deriving (Enum, Eq, Ord, Read, Show, Typeable)
 
-instance Hashable NetWmAllowedActions where
+instance Hashable NET_WM_ALLOWED_ACTIONS where
     hashWithSalt s = hashWithSalt s . show
 
-instance AtomLike NetWmAllowedActions where
+instance AtomLike NET_WM_ALLOWED_ACTIONS where
     toAtomName a = '_' : show a

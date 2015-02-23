@@ -701,11 +701,11 @@ getNetWmDesktop c w = getXid c w NET_WM_DESKTOP AtomCARDINAL
 setNetWmDesktop :: BasicEwmhCtx m => Connection -> WINDOW -> Word32 -> m ()
 setNetWmDesktop c w = setXid c w NET_WM_DESKTOP AtomCARDINAL
 
-getNetWmState :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError [NetWmState])
+getNetWmState :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError [NET_WM_STATE])
 getNetWmState c w = runExceptT $ do
     getXids c w NET_WM_STATE AtomATOM
         >>= eitherToExcept
         >>= fmap (catMaybes . map fromAtom . catMaybes) . mapM lookupAtomId
 
-setNetWmState :: BasicEwmhCtx m => Connection -> WINDOW -> [NetWmState] -> m ()
+setNetWmState :: BasicEwmhCtx m => Connection -> WINDOW -> [NET_WM_STATE] -> m ()
 setNetWmState c w vs = mapM unsafeLookupATOM vs >>= setXids c w NET_WM_STATE AtomATOM
