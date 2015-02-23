@@ -701,6 +701,12 @@ getNetWmDesktop c w = getXid c w NET_WM_DESKTOP AtomCARDINAL
 setNetWmDesktop :: BasicEwmhCtx m => Connection -> WINDOW -> Word32 -> m ()
 setNetWmDesktop c w = setXid c w NET_WM_DESKTOP AtomCARDINAL
 
+requestNetWmDesktop ::BasicEwmhCtx m => Connection -> WINDOW -> NetWmDesktop -> m ()
+requestNetWmDesktop c w d = sendRequest c w NET_WM_DESKTOP [desktop, source]
+    where
+    desktop = netWmDesktop_new_desktop d
+    source  = fromIntegral . toBit . netWmDesktop_source_indication $ d
+
 getNetWmState :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError [NET_WM_STATE])
 getNetWmState c w = runExceptT $ do
     getXids c w NET_WM_STATE AtomATOM
