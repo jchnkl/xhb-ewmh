@@ -707,6 +707,16 @@ requestNetWmDesktop c w d = sendRequest c w NET_WM_DESKTOP [desktop, source]
     desktop = netWmDesktop_new_desktop d
     source  = fromIntegral . toBit . netWmDesktop_source_indication $ d
 
+getNetWmWindowType :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError [NET_WM_WINDOW_TYPE])
+getNetWmWindowType c w = runExceptT $ do
+    getXids c w NET_WM_WINDOW_TYPE AtomATOM
+        >>= eitherToExcept
+        >>= fmap (catMaybes . map fromAtom . catMaybes) . mapM lookupAtomId
+
+setNetWmWindowType :: BasicEwmhCtx m => Connection -> WINDOW -> [NET_WM_WINDOW_TYPE] -> m ()
+setNetWmWindowType c w vs = do
+    mapM unsafeLookupATOM vs >>= setXids c w NET_WM_WINDOW_TYPE AtomATOM
+
 getNetWmState :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError [NET_WM_STATE])
 getNetWmState c w = runExceptT $ do
     getXids c w NET_WM_STATE AtomATOM
