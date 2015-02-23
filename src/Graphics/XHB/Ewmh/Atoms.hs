@@ -15,7 +15,7 @@ instance Hashable Utf8String where
 instance AtomLike Utf8String where
     toAtomName a = '_' : show a
 
-data EwmhAtom =
+data EWMH_ATOM =
     -- Root Window Properties
       NET_SUPPORTED
     | NET_CLIENT_LIST
@@ -71,10 +71,10 @@ data EwmhAtom =
 
     deriving (Enum, Eq, Ord, Read, Show, Typeable)
 
-instance Hashable EwmhAtom where
+instance Hashable EWMH_ATOM where
     hashWithSalt s = hashWithSalt s . show
 
-instance AtomLike EwmhAtom where
+instance AtomLike EWMH_ATOM where
     toAtomName a = '_' : show a
 
 data NET_WM_WINDOW_TYPE =
