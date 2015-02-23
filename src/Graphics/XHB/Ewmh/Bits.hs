@@ -1,11 +1,9 @@
 {-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE StandaloneDeriving #-}
 
 module Graphics.XHB.Ewmh.Values where
 
-import Data.Word (Word32)
 import Data.Typeable (Typeable)
-import Graphics.XHB (BitEnum(..), ButtonIndex(..), StackMode(..), WINDOW)
+import Graphics.XHB (BitEnum(..))
 
 data NET_DESKTOP_LAYOUT_ORIENTATION = NET_WM_ORIENTATION_HORZ
                                     | NET_WM_ORIENTATION_VERT
@@ -39,28 +37,20 @@ instance BitEnum NET_DESKTOP_LAYOUT_STARTING_CORNER where
         1 -> NET_WM_TOPRIGHT
         2 -> NET_WM_BOTTOMRIGHT
         3 -> NET_WM_BOTTOMLEFT
-        _ -> error "NET_DESKTOP_LAYOUT_STARTING_CORNER: no such bit"
+        _ -> error "NET_DESKTOP_LAYOUT_STARTING_CORNER: no such value"
 
-data NetDesktopLayout = NetDesktopLayout
-    { orientation     :: NET_DESKTOP_LAYOUT_ORIENTATION
-    , starting_corner :: NET_DESKTOP_LAYOUT_STARTING_CORNER
-    , columns         :: Word32
-    , rows            :: Word32
-    }
-    deriving (Eq, Ord, Read, Show, Typeable)
-
-data NetWmMoveresizeDirection = NET_WM_MOVERESIZE_SIZE_TOPLEFT
-                             | NET_WM_MOVERESIZE_SIZE_TOP
-                             | NET_WM_MOVERESIZE_SIZE_TOPRIGHT
-                             | NET_WM_MOVERESIZE_SIZE_RIGHT
-                             | NET_WM_MOVERESIZE_SIZE_BOTTOMRIGHT
-                             | NET_WM_MOVERESIZE_SIZE_BOTTOM
-                             | NET_WM_MOVERESIZE_SIZE_BOTTOMLEFT
-                             | NET_WM_MOVERESIZE_SIZE_LEFT
-                             | NET_WM_MOVERESIZE_MOVE
-                             | NET_WM_MOVERESIZE_SIZE_KEYBOARD
-                             | NET_WM_MOVERESIZE_MOVE_KEYBOARD
-                             | NET_WM_MOVERESIZE_CANCEL
+data NET_WM_MOVERESIZE_DIRECTION = NET_WM_MOVERESIZE_SIZE_TOPLEFT
+                                 | NET_WM_MOVERESIZE_SIZE_TOP
+                                 | NET_WM_MOVERESIZE_SIZE_TOPRIGHT
+                                 | NET_WM_MOVERESIZE_SIZE_RIGHT
+                                 | NET_WM_MOVERESIZE_SIZE_BOTTOMRIGHT
+                                 | NET_WM_MOVERESIZE_SIZE_BOTTOM
+                                 | NET_WM_MOVERESIZE_SIZE_BOTTOMLEFT
+                                 | NET_WM_MOVERESIZE_SIZE_LEFT
+                                 | NET_WM_MOVERESIZE_MOVE
+                                 | NET_WM_MOVERESIZE_SIZE_KEYBOARD
+                                 | NET_WM_MOVERESIZE_MOVE_KEYBOARD
+                                 | NET_WM_MOVERESIZE_CANCEL
     deriving (Enum, Eq, Ord, Read, Show, Typeable)
 
 instance BitEnum NetWmMoveresizeDirection where
@@ -167,40 +157,4 @@ instance BitEnum Gravity where
         9  -> SouthEast
         10 -> Static
         _  -> error "Gravity: no such bit"
-
-data NetMoveresizeWindow = NetMoveresizeWindow
-    { netMoveresizeWindow_sourceIndication :: SourceIndication
-    , netMoveresizeWindow_gravity          :: Gravity
-    , netMoveresizeWindow_x                :: Maybe Int
-    , netMoveresizeWindow_y                :: Maybe Int
-    , netMoveresizeWindow_width            :: Maybe Word32
-    , netMoveresizeWindow_height           :: Maybe Word32
-    }
-    deriving (Eq, Ord, Read, Show, Typeable)
-
--- TODO: push to xhb package
-deriving instance Eq ButtonIndex
-deriving instance Ord ButtonIndex
-deriving instance Read ButtonIndex
-
-data NetWmMoveresize = NetWmMoveresize
-    { netWmMoveresize_x_root           :: Maybe Int
-    , netWmMoveresize_y_root           :: Maybe Int
-    , netWmMoveresize_direction        :: NetWmMoveresizeDirection
-    , netWmMoveresize_button           :: ButtonIndex
-    , netWmMoveresize_sourceIndication :: SourceIndication
-    }
-    deriving (Eq, Ord, Read, Show, Typeable)
-
--- TODO: push to xhb package
-deriving instance Eq StackMode
-deriving instance Ord StackMode
-deriving instance Read StackMode
-
--- no Read because there's no Read instance for WINDOW
-data NetRestackWindow = NetRestackWindow
-    { netRestackWindow_sourceIndication :: SourceIndication
-    , netRestackWindow_sibling_window   :: WINDOW
-    , netRestackWindow_detail           :: StackMode
-    }
-    deriving (Eq, Ord, Show, Typeable)
+        _ -> error "NET_WM_STATE_ACTION_BIT: no such bit"
