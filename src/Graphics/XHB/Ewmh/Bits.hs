@@ -5,11 +5,69 @@ module Graphics.XHB.Ewmh.Values where
 import Data.Typeable (Typeable)
 import Graphics.XHB (SimpleEnum(..))
 
+data Gravity = WinGravity
+             | NorthWest
+             | North
+             | NorthEast
+             | West
+             | Center
+             | East
+             | SouthWest
+             | South
+             | SouthEast
+             | Static
+    deriving (Enum, Eq, Ord, Read, Show, Typeable)
+
+instance SimpleEnum Gravity where
+    toValue v = case v of
+        WinGravity -> 0
+        NorthWest  -> 1
+        North      -> 2
+        NorthEast  -> 3
+        West       -> 4
+        Center     -> 5
+        East       -> 6
+        SouthWest  -> 7
+        South      -> 8
+        SouthEast  -> 9
+        Static     -> 10
+
+    fromValue v = case v of
+        0  -> WinGravity
+        1  -> NorthWest
+        2  -> North
+        3  -> NorthEast
+        4  -> West
+        5  -> Center
+        6  -> East
+        7  -> SouthWest
+        8  -> South
+        9  -> SouthEast
+        10 -> Static
+        _  -> error "Gravity: no such value"
+
+data SourceIndication = SourceNone
+                      | SourceApplication
+                      | SourcePager
+    deriving (Enum, Eq, Ord, Read, Show, Typeable)
+
+instance SimpleEnum SourceIndication where
+    toValue v = case v of
+        SourceNone        -> 0
+        SourceApplication -> 1
+        SourcePager       -> 2
+
+    fromValue v = case v of
+        0 -> SourceNone
+        1 -> SourceApplication
+        2 -> SourcePager
+        _ -> error "SourceIndication: no such value"
+
 data NET_DESKTOP_LAYOUT_ORIENTATION = NET_WM_ORIENTATION_HORZ
                                     | NET_WM_ORIENTATION_VERT
     deriving (Enum, Eq, Ord, Read, Show, Typeable)
 
-instance SimpleEnum NET_DESKTOP_LAYOUT_ORIENTATION_BIT where
+instance SimpleEnum NET_DESKTOP_LAYOUT_ORIENTATION where
     toValue v = case v of
         NET_WM_ORIENTATION_HORZ -> 0
         NET_WM_ORIENTATION_VERT -> 1
@@ -17,7 +75,7 @@ instance SimpleEnum NET_DESKTOP_LAYOUT_ORIENTATION_BIT where
     fromValue v = case v of
         0 -> NET_WM_ORIENTATION_HORZ
         1 -> NET_WM_ORIENTATION_VERT
-        _ -> error "NET_DESKTOP_LAYOUT_ORIENTATION: no such bit"
+        _ -> error "NET_DESKTOP_LAYOUT_ORIENTATION: no such value"
 
 data NET_DESKTOP_LAYOUT_STARTING_CORNER = NET_WM_TOPLEFT
                                         | NET_WM_TOPRIGHT
@@ -53,7 +111,7 @@ data NET_WM_MOVERESIZE_DIRECTION = NET_WM_MOVERESIZE_SIZE_TOPLEFT
                                  | NET_WM_MOVERESIZE_CANCEL
     deriving (Enum, Eq, Ord, Read, Show, Typeable)
 
-instance SimpleEnum NetWmMoveresizeDirection where
+instance SimpleEnum NET_WM_MOVERESIZE_DIRECTION where
     toValue v = case v of
         NET_WM_MOVERESIZE_SIZE_TOPLEFT     -> 0
         NET_WM_MOVERESIZE_SIZE_TOP         -> 1
@@ -81,7 +139,7 @@ instance SimpleEnum NetWmMoveresizeDirection where
         9  -> NET_WM_MOVERESIZE_SIZE_KEYBOARD
         10 -> NET_WM_MOVERESIZE_MOVE_KEYBOARD
         11 -> NET_WM_MOVERESIZE_CANCEL
-        _ -> error "NET_DESKTOP_LAYOUT_STARTING_CORNER: no such bit"
+        _ -> error "NET_WM_MOVERESIZE_DIRECTION: no such value"
 
 data NET_WM_STATE_ACTION = NET_WM_STATE_REMOVE
                          | NET_WM_STATE_ADD
@@ -98,63 +156,4 @@ instance SimpleEnum NET_WM_STATE_ACTION where
         0 -> NET_WM_STATE_REMOVE
         1 -> NET_WM_STATE_ADD
         2 -> NET_WM_STATE_TOGGLE
-        _ -> error "NET_WM_STATE_ACTION: no such bit"
-
-data SourceIndication = SourceNone
-                      | SourceApplication
-                      | SourcePager
-    deriving (Enum, Eq, Ord, Read, Show, Typeable)
-
-instance BitEnum SourceIndication where
-    toBit v = case v of
-        SourceNone        -> 0
-        SourceApplication -> 1
-        SourcePager       -> 2
-
-    fromBit v = case v of
-        0 -> SourceNone
-        1 -> SourceApplication
-        2 -> SourcePager
-        _ -> error "SourceIndication: no such bit"
-
-data Gravity = WinGravity
-             | NorthWest
-             | North
-             | NorthEast
-             | West
-             | Center
-             | East
-             | SouthWest
-             | South
-             | SouthEast
-             | Static
-    deriving (Enum, Eq, Ord, Read, Show, Typeable)
-
-instance BitEnum Gravity where
-    toBit v = case v of
-        WinGravity -> 0
-        NorthWest  -> 1
-        North      -> 2
-        NorthEast  -> 3
-        West       -> 4
-        Center     -> 5
-        East       -> 6
-        SouthWest  -> 7
-        South      -> 8
-        SouthEast  -> 9
-        Static     -> 10
-
-    fromBit v = case v of
-        0  -> WinGravity
-        1  -> NorthWest
-        2  -> North
-        3  -> NorthEast
-        4  -> West
-        5  -> Center
-        6  -> East
-        7  -> SouthWest
-        8  -> South
-        9  -> SouthEast
-        10 -> Static
-        _  -> error "Gravity: no such bit"
-        _ -> error "NET_WM_STATE_ACTION_BIT: no such bit"
+        _ -> error "NET_WM_STATE_ACTION: no such value"

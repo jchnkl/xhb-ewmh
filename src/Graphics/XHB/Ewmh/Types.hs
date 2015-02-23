@@ -10,8 +10,8 @@ import Data.Word (Word32)
 import Data.Typeable (Typeable)
 import Graphics.XHB (ButtonIndex(..), StackMode(..), WINDOW)
 import Graphics.XHB.Atom
-import Graphics.XHB.Ewmh.Bits
 import Graphics.XHB.Ewmh.Atoms
+import Graphics.XHB.Ewmh.Values
 
 type EwmhT = AtomT
 
@@ -36,7 +36,7 @@ data NetDesktopLayout = NetDesktopLayout
     deriving (Eq, Ord, Read, Show, Typeable)
 
 data NetMoveresizeWindow = NetMoveresizeWindow
-    { netMoveresizeWindow_sourceIndication :: SOURCE_INDICATION_BIT
+    { netMoveresizeWindow_sourceIndication :: SourceIndication
     , netMoveresizeWindow_gravity          :: Gravity
     , netMoveresizeWindow_x                :: Maybe Int
     , netMoveresizeWindow_y                :: Maybe Int
@@ -53,9 +53,9 @@ deriving instance Read ButtonIndex
 data NetWmMoveresize = NetWmMoveresize
     { netWmMoveresize_x_root           :: Maybe Int
     , netWmMoveresize_y_root           :: Maybe Int
-    , netWmMoveresize_direction        :: NetWmMoveresizeDirection
+    , netWmMoveresize_direction        :: NET_WM_MOVERESIZE_DIRECTION
     , netWmMoveresize_button           :: ButtonIndex
-    , netWmMoveresize_sourceIndication :: SOURCE_INDICATION_BIT
+    , netWmMoveresize_sourceIndication :: SourceIndication
     }
     deriving (Eq, Ord, Read, Show, Typeable)
 
@@ -66,7 +66,7 @@ deriving instance Read StackMode
 
 -- no Read because there's no Read instance for WINDOW
 data NetRestackWindow = NetRestackWindow
-    { netRestackWindow_sourceIndication :: SOURCE_INDICATION_BIT
+    { netRestackWindow_sourceIndication :: SourceIndication
     , netRestackWindow_sibling_window   :: WINDOW
     , netRestackWindow_detail           :: StackMode
     }
@@ -74,15 +74,15 @@ data NetRestackWindow = NetRestackWindow
 
 data NetWmDesktop = NetWmDesktop
     { netWmDesktop_new_desktop       :: Word32
-    , netWmDesktop_source_indication :: SOURCE_INDICATION_BIT
+    , netWmDesktop_source_indication :: SourceIndication
     }
     deriving (Eq, Ord, Read, Show, Typeable)
 
 data NetWmState = NetWmState
     { netWmState_window :: WINDOW
-    , netWmState_action :: NET_WM_STATE_ACTION_BIT
+    , netWmState_action :: NET_WM_STATE_ACTION
     , netWmState_first_property :: NET_WM_STATE
     , netWmState_second_property :: NET_WM_STATE
-    , netWmState_source_indication :: SOURCE_INDICATION_BIT
+    , netWmState_source_indication :: SourceIndication
     }
     deriving (Eq, Ord, Show, Typeable)
