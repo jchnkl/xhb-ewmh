@@ -122,6 +122,72 @@ putSkip16 n = replicateM_ n $ putWord16host 0
 putSkip32 :: Int -> Put
 putSkip32 n = replicateM_ n $ putWord32host 0
 
+class PropertyType a where
+    propertyTypeAtom :: a -> Atom
+    propertyTypeATOM :: MonadEwmh m => a -> m ATOM
+    propertyTypeATOM = return . fromXid . toXid . propertyTypeAtom
+
+instance PropertyType EWMH_ATOM where
+    propertyTypeAtom a = case a of
+        -- Root Window Properties
+        NET_SUPPORTED -> AtomATOM
+        NET_CLIENT_LIST -> AtomWINDOW
+        NET_CLIENT_LIST_STACKING -> AtomWINDOW
+        NET_NUMBER_OF_DESKTOPS -> AtomCARDINAL
+        NET_DESKTOP_GEOMETRY -> AtomCARDINAL
+        NET_DESKTOP_VIEWPORT -> AtomCARDINAL
+        NET_CURRENT_DESKTOP -> AtomCARDINAL
+        NET_ACTIVE_WINDOW -> AtomWINDOW
+        NET_WORKAREA -> AtomCARDINAL
+        NET_SUPPORTING_WM_CHECK -> AtomWINDOW
+        NET_VIRTUAL_ROOTS -> AtomWINDOW
+        NET_DESKTOP_LAYOUT -> AtomCARDINAL
+        NET_SHOWING_DESKTOP -> AtomCARDINAL
+
+        -- Other Root Window Messages
+        NET_CLOSE_WINDOW -> error "no property type for NET_CLOSE_WINDOW"
+        NET_MOVERESIZE_WINDOW -> error "no property type for NET_MOVERESIZE_WINDOW"
+        NET_WM_MOVERESIZE -> error "no property type for NET_WM_MOVERESIZE"
+        NET_RESTACK_WINDOW -> error "no property type for NET_RESTACK_WINDOW"
+        NET_REQUEST_FRAME_EXTENTS -> error "no property type for NET_REQUEST_FRAME_EXTENTS"
+
+        -- Application Window Property
+        NET_WM_DESKTOP -> AtomCARDINAL
+        NET_WM_WINDOW_TYPE -> AtomATOM
+        NET_WM_STATE -> AtomATOM
+        NET_WM_ALLOWED_ACTIONS -> AtomATOM
+        NET_WM_STRUT -> AtomCARDINAL
+        NET_WM_STRUT_PARTIAL -> AtomCARDINAL
+        NET_WM_ICON_GEOMETRY -> AtomCARDINAL
+        NET_WM_ICON -> AtomCARDINAL
+        NET_WM_PID -> AtomCARDINAL
+        NET_WM_HANDLED_ICONS -> error "no property type for NET_WM_HANDLED_ICONS"
+        NET_WM_USER_TIME -> AtomCARDINAL
+        NET_WM_USER_TIME_WINDOW -> AtomWINDOW
+        NET_FRAME_EXTENTS -> AtomCARDINAL
+        NET_WM_OPAQUE_REGION -> AtomCARDINAL
+        NET_WM_BYPASS_COMPOSITOR -> AtomCARDINAL
+
+        -- Window Manager Protocols
+        NET_WM_PING -> error "no property type for NET_WM_PING"
+        NET_WM_SYNC_REQUEST -> error "no property type for NET_WM_SYNC_REQUEST"
+        NET_WM_SYNC_REQUEST_COUNTER -> error "no property type for NET_WM_SYNC_REQUEST_COUNTER"
+        NET_WM_FULLSCREEN_MONITORS -> error "no property type for NET_WM_FULLSCREEN_MONITORS"
+
+        -- Other Properties
+        NET_WM_FULL_PLACEMENT -> error "no property type for NET_WM_FULL_PLACEMENT"
+
+        _ -> error $ "no propertyTypeAtom for " ++ show a
+
+    propertyTypeATOM a = case a of
+        NET_DESKTOP_NAMES -> unsafeLookupATOM UTF8_STRING
+        NET_WM_NAME -> unsafeLookupATOM UTF8_STRING
+        NET_WM_VISIBLE_NAME -> unsafeLookupATOM UTF8_STRING
+        NET_WM_ICON_NAME -> unsafeLookupATOM UTF8_STRING
+        NET_WM_VISIBLE_ICON_NAME -> unsafeLookupATOM UTF8_STRING
+
+        _ -> error $ "no propertyTypeATOM for " ++ show a
+
 class Serialize a where
     serialize :: a -> Put
 
