@@ -3,18 +3,18 @@
 module Graphics.XHB.Ewmh.Values where
 
 import Data.Typeable (Typeable)
-import Graphics.XHB (BitEnum(..))
+import Graphics.XHB (SimpleEnum(..))
 
 data NET_DESKTOP_LAYOUT_ORIENTATION = NET_WM_ORIENTATION_HORZ
                                     | NET_WM_ORIENTATION_VERT
     deriving (Enum, Eq, Ord, Read, Show, Typeable)
 
-instance BitEnum NET_DESKTOP_LAYOUT_ORIENTATION where
-    toBit v = case v of
+instance SimpleEnum NET_DESKTOP_LAYOUT_ORIENTATION_BIT where
+    toValue v = case v of
         NET_WM_ORIENTATION_HORZ -> 0
         NET_WM_ORIENTATION_VERT -> 1
 
-    fromBit v = case v of
+    fromValue v = case v of
         0 -> NET_WM_ORIENTATION_HORZ
         1 -> NET_WM_ORIENTATION_VERT
         _ -> error "NET_DESKTOP_LAYOUT_ORIENTATION: no such bit"
@@ -25,14 +25,14 @@ data NET_DESKTOP_LAYOUT_STARTING_CORNER = NET_WM_TOPLEFT
                                         | NET_WM_BOTTOMLEFT
     deriving (Enum, Eq, Ord, Read, Show, Typeable)
 
-instance BitEnum NET_DESKTOP_LAYOUT_STARTING_CORNER where
-    toBit v = case v of
+instance SimpleEnum NET_DESKTOP_LAYOUT_STARTING_CORNER where
+    toValue v = case v of
         NET_WM_TOPLEFT     -> 0
         NET_WM_TOPRIGHT    -> 1
         NET_WM_BOTTOMRIGHT -> 2
         NET_WM_BOTTOMLEFT  -> 3
 
-    fromBit v = case v of
+    fromValue v = case v of
         0 -> NET_WM_TOPLEFT
         1 -> NET_WM_TOPRIGHT
         2 -> NET_WM_BOTTOMRIGHT
@@ -53,8 +53,8 @@ data NET_WM_MOVERESIZE_DIRECTION = NET_WM_MOVERESIZE_SIZE_TOPLEFT
                                  | NET_WM_MOVERESIZE_CANCEL
     deriving (Enum, Eq, Ord, Read, Show, Typeable)
 
-instance BitEnum NetWmMoveresizeDirection where
-    toBit v = case v of
+instance SimpleEnum NetWmMoveresizeDirection where
+    toValue v = case v of
         NET_WM_MOVERESIZE_SIZE_TOPLEFT     -> 0
         NET_WM_MOVERESIZE_SIZE_TOP         -> 1
         NET_WM_MOVERESIZE_SIZE_TOPRIGHT    -> 2
@@ -68,7 +68,7 @@ instance BitEnum NetWmMoveresizeDirection where
         NET_WM_MOVERESIZE_MOVE_KEYBOARD    -> 10
         NET_WM_MOVERESIZE_CANCEL           -> 11
 
-    fromBit v = case v of
+    fromValue v = case v of
         0  -> NET_WM_MOVERESIZE_SIZE_TOPLEFT
         1  -> NET_WM_MOVERESIZE_SIZE_TOP
         2  -> NET_WM_MOVERESIZE_SIZE_TOPRIGHT
@@ -88,13 +88,13 @@ data NET_WM_STATE_ACTION = NET_WM_STATE_REMOVE
                          | NET_WM_STATE_TOGGLE
     deriving (Enum, Eq, Ord, Read, Show, Typeable)
 
-instance BitEnum NET_WM_STATE_ACTION where
-    toBit v = case v of
+instance SimpleEnum NET_WM_STATE_ACTION where
+    toValue v = case v of
         NET_WM_STATE_REMOVE -> 0
         NET_WM_STATE_ADD    -> 1
         NET_WM_STATE_TOGGLE -> 2
 
-    fromBit v = case v of
+    fromValue v = case v of
         0 -> NET_WM_STATE_REMOVE
         1 -> NET_WM_STATE_ADD
         2 -> NET_WM_STATE_TOGGLE
