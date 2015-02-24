@@ -394,3 +394,12 @@ requestNetWmState c w v = do
     p2 = case netWmState_second_property v of
         Nothing -> return 0
         Just n  -> fmap (X.fromXid . X.toXid) $ unsafeLookupATOM n
+
+getNetWmAllowedActions :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError [NET_WM_ALLOWED_ACTIONS])
+getNetWmAllowedActions c w = runExceptT $ do
+    getProp c w NET_WM_ALLOWED_ACTIONS AtomATOM
+        >>= eitherToExcept
+        >>= fmap (catMaybes . map fromAtom . catMaybes) . mapM lookupAtomId
+
+setNetWmAllowedActions :: BasicEwmhCtx m => Connection -> WINDOW -> [NET_WM_ALLOWED_ACTIONS] -> m ()
+setNetWmAllowedActions c w vs = mapM unsafeLookupATOM vs >>= setProp c w NET_WM_ALLOWED_ACTIONS AtomATOM
