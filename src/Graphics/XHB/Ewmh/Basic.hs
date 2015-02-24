@@ -65,6 +65,8 @@ type BasicEwmhCtx m = (Applicative m, MonadIO m, MonadEwmh m)
 
 type Prop p t r m = (AtomLike p, PropertyType t, Serialize r, BasicEwmhCtx m)
 
+type Request p d m = (AtomLike p, Serialize d, BasicEwmhCtx m)
+
 eitherToExcept :: Monad m => Either e a -> ExceptT e m a
 eitherToExcept = ExceptT . return
 
@@ -274,8 +276,7 @@ hoistMaybe :: Monad m => Maybe a -> MaybeT m a
 hoistMaybe = MaybeT . return
 
 -- | Send an Ewmh request for `WINDOW` to the root window
-sendRequest :: (AtomLike a, Serialize d, BasicEwmhCtx m)
-            => Connection -> WINDOW -> a -> d -> m ()
+sendRequest :: Request p d m => Connection -> WINDOW -> p -> d -> m ()
 sendRequest c w a d = void . runMaybeT $ do
     lookupATOM a >>= hoistMaybe >>= send
     where
