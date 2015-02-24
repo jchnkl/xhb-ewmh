@@ -35,7 +35,7 @@ import Data.List (intersperse)
 import Data.Word (Word8, Word32)
 import Data.Binary.Get -- (Get, runGet) -- , putWord8, putWord16host, putWord32host)
 import Data.Binary.Put -- (Put, runPut, putWord8, putWord16host, putWord32host)
-import Data.ByteString.Lazy (pack, unpack, splitWith)
+import qualified Data.ByteString.Lazy as B
 -- import Data.Maybe (isJust, catMaybes, fromMaybe)
 import Control.Monad (replicateM_)
 -- import Control.Monad.Except (MonadError(..), ExceptT(..), runExceptT)
@@ -64,12 +64,12 @@ class Serialize a where
     serialize :: a -> Put
 
     toBytes :: a -> [Word8]
-    toBytes = unpack . runPut . serialize
+    toBytes = B.unpack . runPut . serialize
 
     deserialize :: Get a
 
     fromBytes :: [Word8] -> a
-    fromBytes = runGet deserialize . pack
+    fromBytes = runGet deserialize . B.pack
 
     serializeList :: [a] -> Put
     serializeList = mapM_ serialize
@@ -117,13 +117,13 @@ instance Serialize Char where
 instance Serialize String where
     serialize = mapM_ serialize
     deserialize = fmap toString getRemainingLazyByteString
-        where toString = map (chr . fromIntegral) . unpack
+        where toString = map (chr . fromIntegral) . B.unpack
 
     serializeList = mapM_ putWord8 . map (fromIntegral . ord) . concat . intersperse "\0"
     deserializeList = do
-        fmap (map toString . splitWith (== nul)) getRemainingLazyByteString
+        fmap (map toString . B.splitWith (== nul)) getRemainingLazyByteString
         where nul = fromIntegral . ord $ '\0'
-              toString = map (chr . fromIntegral) . unpack
+              toString = map (chr . fromIntegral) . B.unpack
 
 instance Serialize Word32 where
     serialize = putWord32host
