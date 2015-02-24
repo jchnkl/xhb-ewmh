@@ -27,7 +27,7 @@ module Graphics.XHB.Ewmh.Basic
 
 import qualified Data.HashMap.Lazy as M
 import Data.Bits ((.|.), shiftL)
-import Data.Word (Word8, Word32)
+import Data.Word (Word32)
 import Data.Maybe (isJust, catMaybes, fromMaybe)
 import Control.Monad (join, void)
 import Control.Monad.Except (ExceptT(..), runExceptT)
@@ -38,7 +38,7 @@ import Control.Monad.Trans.Maybe (MaybeT(..))
 
 import Foreign.C (CChar(..))
 import Graphics.XHB (Connection, SomeError, WINDOW, ATOM, XidLike, Atom(..))
-import Graphics.XHB (GetPropertyReply, GetProperty(..), ChangeProperty(..))
+import Graphics.XHB (GetProperty(..), ChangeProperty(..))
 import Graphics.XHB (SendEvent(..), ClientMessageEvent(..), ClientMessageData(..))
 import Graphics.XHB (PropMode(..), EventMask(..), Time(..))
 import qualified Graphics.XHB as X
@@ -89,60 +89,42 @@ runEwmhT c = runAtomT
     actions = [NET_WM_ACTION_MOVE .. NET_WM_ACTION_BELOW]
     types   = [NET_WM_WINDOW_TYPE_DESKTOP .. NET_WM_WINDOW_TYPE_NORMAL]
 
-getPropertyReply :: MonadIO m
-                  => Connection
-                  -> WINDOW -- ^ Target window
-                  -> ATOM -- ^ Property
-                  -> ATOM -- ^ Property Type
-                  -> m (Either SomeError GetPropertyReply)
-getPropertyReply c win prop prop_type = do
-    liftIO $ X.getProperty c request >>= X.getReply
+getProp :: Prop p t r m => Connection -> WINDOW -> p -> t -> m (Either SomeError r)
+getProp c w p t = runExceptT $ do
+    ap <- unsafeLookupATOM p
+    at <- toPropertyType t
+    fmap fromReply . eitherToExcept =<< getPropertyReply (request ap at)
     where
-    request = MkGetProperty
+    fromReply = fromBytes . X.value_GetPropertyReply
+    getPropertyReply req = liftIO $ X.getProperty c req >>= X.getReply
+    request ap at = MkGetProperty
         { delete_GetProperty = False
-        , window_GetProperty = win
-        , property_GetProperty = prop
-        , type_GetProperty = prop_type
+        , window_GetProperty = w
+        , property_GetProperty = ap
+        , type_GetProperty = at
         , long_offset_GetProperty = 0
         , long_length_GetProperty = maxBound
         }
-
-simpleChangeProperty :: MonadIO m
-                     => Connection
-                     -> WINDOW -- ^ Target window
-                     -> ATOM -- ^ Property to change
-                     -> ATOM -- ^ Property Type
-                     -> PropMode -- ^ Append, Prepend or Replace
-                     -> [Word8] -- ^ values
-                     -> m ()
-simpleChangeProperty c window prop prop_type prop_mode values = do
-    liftIO $ X.changeProperty c request
-    where
-    request = MkChangeProperty
-        { mode_ChangeProperty = prop_mode
-        , window_ChangeProperty = window
-        , property_ChangeProperty = prop
-        , type_ChangeProperty = prop_type
-        , format_ChangeProperty = 8
-        , data_len_ChangeProperty = fromIntegral $ length values
-        , data_ChangeProperty = values
-        }
-
-getProp :: Prop p t r m => Connection -> WINDOW -> p -> t -> m (Either SomeError r)
-getProp c w p t = runExceptT $ do
-    a <- unsafeLookupATOM p
-    toPropertyType t
-        >>= getPropertyReply c w a
-        >>= fmap (fromBytes . X.value_GetPropertyReply) . eitherToExcept
-
-getRootProp :: Prop p t r m => Connection -> p -> t -> m (Either SomeError r)
-getRootProp c = getProp c (X.getRoot c)
 
 setProp :: Prop p t r m => Connection -> WINDOW -> p -> t -> r -> m ()
 setProp c w p t r = do
     ap <- unsafeLookupATOM p
     at <- toPropertyType t
-    simpleChangeProperty c w ap at PropModeReplace $ toBytes r
+    liftIO . X.changeProperty c $ request ap at
+    where
+    values = toBytes r
+    request ap at = MkChangeProperty
+        { mode_ChangeProperty = PropModeReplace
+        , window_ChangeProperty = w
+        , property_ChangeProperty = ap
+        , type_ChangeProperty = at
+        , format_ChangeProperty = 8
+        , data_len_ChangeProperty = fromIntegral $ length values
+        , data_ChangeProperty = values
+        }
+
+getRootProp :: Prop p t r m => Connection -> p -> t -> m (Either SomeError r)
+getRootProp c = getProp c (X.getRoot c)
 
 setRootProp :: Prop p t r m => Connection -> p -> t -> r -> m ()
 setRootProp c = setProp c (X.getRoot c)
