@@ -43,12 +43,16 @@ import Graphics.XHB.Ewmh.Types
 
 import qualified Graphics.XHB.Ewmh.Basic as B
 
--- type EwmhCtx m = (Applicative m, MonadIO m, MonadEwmh m, MonadError SomeError m)
---
--- runEwmhT :: (Applicative m, MonadIO m, MonadError SomeError m)
---           => Connection -> EwmhT m a -> m a
--- runEwmhT c m = B.runEwmhT c m >>= B.eitherToError
---
+type BaseCtx m = (Applicative m, MonadIO m, MonadError SomeError m)
+type EwmhCtx m = (BaseCtx m, MonadEwmh m)
+
+eitherToError :: MonadError e m => Either e a -> m a
+eitherToError (Left e)  = throwError e
+eitherToError (Right a) = return a
+
+runEwmhT :: BaseCtx m => Connection -> EwmhT m a -> m a
+runEwmhT c m = B.runEwmhT c m >>= eitherToError
+
 -- getNetSupported :: EwmhCtx m => Connection -> m NetSupported
 -- getNetSupported c = B.getNetSupported c >>= B.eitherToError
 --
