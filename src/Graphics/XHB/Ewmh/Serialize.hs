@@ -1,55 +1,18 @@
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-
--- {-# LANGUAGE DeriveDataTypeable  #-}
--- {-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE FlexibleInstances   #-}
--- {-# LANGUAGE OverloadedStrings   #-}
--- {-# LANGUAGE ScopedTypeVariables #-}
--- {-# LANGUAGE ConstraintKinds #-}
--- -- {-# LANGUAGE IncoherentInstances #-}
+{-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE OverlappingInstances #-}
 
-module Graphics.XHB.Ewmh.Serialize
-    where
-    -- ( module Graphics.XHB.Ewmh.Types
-    -- -- , Utf8String(..)
-    -- , runEwmhT
-    -- , atomToXidLike
-    -- , simpleGetProperty
-    -- , simpleChangeProperty
-    -- -- , getString
-    -- -- , getUtf8String
-    -- -- , ewmhRequest
-    -- -- , changeNetWmState
-    -- -- , netActiveWindow
-    -- -- , getNetActiveWindow
-    -- -- , netRestackWindow
-    -- -- , netMoveResizeWindow
-    -- ) where
+module Graphics.XHB.Ewmh.Serialize (Serialize(..)) where
 
--- import qualified Data.HashMap.Lazy as M
--- import Data.Bits (Bits, (.|.), setBit, shiftL)
-import qualified Data.DList as DL
+import Control.Monad (replicateM_)
+import Data.Binary.Get
+import Data.Binary.Put
 import Data.Char (chr, ord)
 import Data.List (intersperse)
 import Data.Word (Word8, Word32)
-import Data.Binary.Get -- (Get, runGet) -- , putWord8, putWord16host, putWord32host)
-import Data.Binary.Put -- (Put, runPut, putWord8, putWord16host, putWord32host)
-import qualified Data.ByteString.Lazy as B
--- import Data.Maybe (isJust, catMaybes, fromMaybe)
-import Control.Monad (replicateM_)
--- import Control.Monad.Except (MonadError(..), ExceptT(..), runExceptT)
--- import Control.Monad.State (gets)
--- import Control.Applicative (Applicative(..), (<$>))
--- import Control.Monad.IO.Class (MonadIO(..))
--- import Control.Monad.Trans.Maybe (MaybeT(..))
-
--- import Foreign.C (CChar(..))
 import Graphics.XHB
--- import Graphics.XHB.Atom
-import Graphics.XHB.Ewmh.Values
--- import Graphics.XHB.Ewmh.Atoms
-import Graphics.XHB.Ewmh.Types
+import qualified Data.ByteString.Lazy as B
+import qualified Data.ByteString.Lazy.Char8 as C
+import qualified Data.DList as DL
 
 putSkip8 :: Int -> Put
 putSkip8 n = replicateM_ n $ putWord8 0
@@ -116,14 +79,16 @@ instance Serialize Char where
 
 instance Serialize String where
     serialize = mapM_ serialize
-    deserialize = fmap toString getRemainingLazyByteString
-        where toString = map (chr . fromIntegral) . B.unpack
+
+    deserialize = fmap C.unpack getRemainingLazyByteString
 
     serializeList = mapM_ putWord8 . map (fromIntegral . ord) . concat . intersperse "\0"
-    deserializeList = fmap convert getRemainingLazyByteString
+
+    deserializeList = fmap (init_ . convert) getRemainingLazyByteString
         where nul      = fromIntegral . ord $ '\0'
-              toString = map (chr . fromIntegral) . B.unpack
-              convert  = map toString . filter (not . B.null) . B.splitWith (== nul)
+              convert  = map C.unpack . B.splitWith (== nul)
+              init_ [] = []
+              init_ xs = init xs
 
 instance Serialize Word32 where
     serialize = putWord32host
