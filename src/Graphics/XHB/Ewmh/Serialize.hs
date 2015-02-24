@@ -120,10 +120,10 @@ instance Serialize String where
         where toString = map (chr . fromIntegral) . B.unpack
 
     serializeList = mapM_ putWord8 . map (fromIntegral . ord) . concat . intersperse "\0"
-    deserializeList = do
-        fmap (map toString . B.splitWith (== nul)) getRemainingLazyByteString
-        where nul = fromIntegral . ord $ '\0'
+    deserializeList = fmap convert getRemainingLazyByteString
+        where nul      = fromIntegral . ord $ '\0'
               toString = map (chr . fromIntegral) . B.unpack
+              convert  = map toString . filter (not . B.null) . B.splitWith (== nul)
 
 instance Serialize Word32 where
     serialize = putWord32host
