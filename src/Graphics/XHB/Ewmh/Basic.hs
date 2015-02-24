@@ -134,8 +134,7 @@ hoistMaybe = MaybeT . return
 
 -- | Send an Ewmh request for `WINDOW` to the root window
 sendRequest :: Request p d m => Connection -> WINDOW -> p -> d -> m ()
-sendRequest c w a d = void . runMaybeT $ do
-    lookupATOM a >>= hoistMaybe >>= send
+sendRequest c w a d = void . runMaybeT $ lookupATOM a >>= hoistMaybe >>= send
     where
     send = liftIO . X.sendEvent c . request (X.getRoot c) . serializeEvent
 
