@@ -26,12 +26,11 @@ module Graphics.XHB.Ewmh.Basic
     -- ) where
 
 import qualified Data.HashMap.Lazy as M
-import Data.Bits (Bits, (.|.), setBit, shiftL)
-import Data.Char (chr, ord)
+import Data.Bits ((.|.), shiftL)
 import Data.Word (Word8, Word32)
 import Data.Maybe (isJust, catMaybes, fromMaybe)
 import Control.Monad (join, void)
-import Control.Monad.Except (MonadError(..), ExceptT(..), runExceptT)
+import Control.Monad.Except (ExceptT(..), runExceptT)
 import Control.Monad.State (gets)
 import Control.Applicative (Applicative(..), (<$>))
 import Control.Monad.IO.Class (MonadIO(..))
@@ -41,7 +40,7 @@ import Foreign.C (CChar(..))
 import Graphics.XHB (Connection, SomeError, WINDOW, ATOM, XidLike, Atom(..))
 import Graphics.XHB (GetPropertyReply, GetProperty(..), ChangeProperty(..))
 import Graphics.XHB (SendEvent(..), ClientMessageEvent(..), ClientMessageData(..))
-import Graphics.XHB (PropMode(..), EventMask(..), UnknownError(..), Time(..))
+import Graphics.XHB (PropMode(..), EventMask(..), Time(..))
 import qualified Graphics.XHB as X
 import Graphics.XHB.Atom
 import Graphics.XHB.Ewmh.Bits
@@ -66,65 +65,8 @@ type BasicEwmhCtx m = (Applicative m, MonadIO m, MonadEwmh m)
 
 type Prop p t r m = (AtomLike p, PropertyType t, Serialize r, BasicEwmhCtx m)
 
-fe :: (Enum a, Integral b) => a -> b
-fe = fromIntegral . fromEnum
-
-(.=.) :: (Bits a) => a -> Int -> a
-(.=.) = setBit
-
-fromXidLike :: (XidLike a, XidLike b) => a -> b
-fromXidLike = X.fromXid . X.toXid
-
-atomToXidLike :: (XidLike a) => Atom -> a
-atomToXidLike a = X.fromXid $ X.toXid (X.toValue a :: Word32)
-
-bytesToString :: [Word8] -> String
-bytesToString = map (chr . fromIntegral)
-
--- TODO: make type class
--- class ByteClass a where fromBytes ..
-fromBytes :: [Word8] -> Maybe Word32
-fromBytes bytes | length bytes == 4 = Just $ foldr accum 0 bytes
-                | otherwise         = Nothing
-    where accum o a = (a `shiftL` 8) .|. fromIntegral o
-
-toWord :: (Word8, Word8, Word8, Word8) -> Word32
-toWord (a,b,c,d) = fi a
-               .|. fi b `shiftL` 8
-               .|. fi c `shiftL` 16
-               .|. fi d `shiftL` 24
-    where fi = fromIntegral
-
-toWords :: [Word8] -> [Word32]
-toWords (a:b:c:d:rest) = toWord (a,b,c,d) : toWords rest
-toWords _              = []
-
-bytesToXidLike :: XidLike a => [Word8] -> Maybe a
-bytesToXidLike = fmap fromXidLike . fromBytes
-
-toXidLike :: XidLike a => GetPropertyReply -> Maybe a
-toXidLike = fmap fromXidLike . fromBytes . value_GetPropertyReply
-
-toXidLikeList :: XidLike a => GetPropertyReply -> [a]
-toXidLikeList = map fromXidLike . toWords . X.value_GetPropertyReply
-
-splitOn :: (Eq a) => a -> [a] -> [[a]]
-splitOn delim = splitOn' [] []
-    where
-    splitOn' accum result [] = filter (not . null) $ map reverse $ accum:result
-    splitOn' accum result (x:xs)
-        | x == delim = splitOn' [] (accum:result) xs
-        | otherwise  = splitOn' (x:accum) result xs
-
-eitherToError :: MonadError e m => Either e a -> m a
-eitherToError (Left  e) = throwError e
-eitherToError (Right a) = return a
-
 eitherToExcept :: Monad m => Either e a -> ExceptT e m a
 eitherToExcept = ExceptT . return
-
-toString :: [Word8] -> [String]
-toString = map bytesToString . splitOn (fromIntegral (ord '\0') :: Word8)
 
 dump :: Monad m => AtomT m [AtomName]
 dump = AtomT $ gets (map atomName . M.keys . fst)
@@ -145,13 +87,13 @@ runEwmhT c = runAtomT
     actions = [NET_WM_ACTION_MOVE .. NET_WM_ACTION_BELOW]
     types   = [NET_WM_WINDOW_TYPE_DESKTOP .. NET_WM_WINDOW_TYPE_NORMAL]
 
-simpleGetProperty :: MonadIO m
+getPropertyReply :: MonadIO m
                   => Connection
                   -> WINDOW -- ^ Target window
                   -> ATOM -- ^ Property
                   -> ATOM -- ^ Property Type
                   -> m (Either SomeError GetPropertyReply)
-simpleGetProperty c win prop prop_type = do
+getPropertyReply c win prop prop_type = do
     liftIO $ X.getProperty c request >>= X.getReply
     where
     request = MkGetProperty
@@ -184,75 +126,24 @@ simpleChangeProperty c window prop prop_type prop_mode values = do
         , data_ChangeProperty = values
         }
 
-getXid :: (AtomLike a, XidLike p, XidLike v, BasicEwmhCtx m)
-       => Connection -> WINDOW -> a -> p -> m (Either SomeError v)
-getXid c w al prop_type = runExceptT $ unsafeLookupATOM al >>= \a -> do
-    simpleGetProperty c w a (fromXid . toXid $ prop_type)
-        >>= fmap (fromBytes . value_GetPropertyReply) . eitherToExcept
-        >>= eitherToExcept . maybe toLeft toRight
-    where
-    toLeft   = Left . toError $ UnknownError "getRootXid: no value"
-    toRight  = Right . fromXidLike
+getProp :: Prop p t r m => Connection -> WINDOW -> p -> t -> m (Either SomeError r)
+getProp c w p t = runExceptT $ do
+    a <- unsafeLookupATOM p
+    toPropertyType t
+        >>= getPropertyReply c w a
+        >>= fmap (fromBytes . X.value_GetPropertyReply) . eitherToExcept
 
-setXid :: (AtomLike a, XidLike p, XidLike v, BasicEwmhCtx m)
-       => Connection -> WINDOW -> a -> p -> v -> m ()
-setXid c w al pt v = unsafeLookupATOM al >>= \a -> do
-    simpleChangeProperty c w a type_ PropModeReplace $ toBytes value
-    where type_ = X.fromXid (X.toXid pt)
-          value = X.fromXid (X.toXid v) :: Word32
+getRootProp :: Prop p t r m => Connection -> p -> t -> m (Either SomeError r)
+getRootProp c = getProp c (X.getRoot c)
 
-getRootXid :: (AtomLike a, XidLike p, XidLike v, BasicEwmhCtx m)
-           => Connection -> a -> p -> m (Either SomeError v)
-getRootXid c = getXid c (X.getRoot c)
+setProp :: Prop p t r m => Connection -> WINDOW -> p -> t -> r -> m ()
+setProp c w p t r = do
+    ap <- unsafeLookupATOM p
+    at <- toPropertyType t
+    simpleChangeProperty c w ap at PropModeReplace $ toBytes r
 
-setRootXid :: (AtomLike a, XidLike p, XidLike v, BasicEwmhCtx m)
-           => Connection -> a -> p -> v -> m ()
-setRootXid c = setXid c (X.getRoot c)
-
-getXids :: (AtomLike a, XidLike p, XidLike v, BasicEwmhCtx m)
-        => Connection -> WINDOW -> a -> p -> m (Either SomeError [v])
-getXids c w al prop_type = unsafeLookupATOM al >>= \a -> do
-    fmap (toXids . X.value_GetPropertyReply)
-        <$> simpleGetProperty c w a (X.fromXid . X.toXid $ prop_type)
-    where toXids = map (X.fromXid . X.toXid) . toWords
-
-setProp :: (AtomLike a, XidLike p, Serialize v, BasicEwmhCtx m)
-        => Connection -> WINDOW -> a -> p -> v -> m ()
-setProp c w al pt v = unsafeLookupATOM al >>= \a -> do
-    simpleChangeProperty c w a type_ PropModeReplace $ toBytes v
-    where type_  = fromXid (toXid pt)
-
-setXids :: (AtomLike a, XidLike p, XidLike v, BasicEwmhCtx m)
-        => Connection -> WINDOW -> a -> p -> [v] -> m ()
-setXids c w al pt vs = setProp c w al pt values
-    where values = map (fromXid . toXid) vs :: [Word32]
-
-getRootXids :: (AtomLike a, XidLike p, XidLike v, BasicEwmhCtx m)
-            => Connection -> a -> p -> m (Either SomeError [v])
-getRootXids c = getXids c (X.getRoot c)
-
-setRootProp :: (AtomLike a, XidLike p, Serialize v, BasicEwmhCtx m)
-            => Connection -> a -> p -> v -> m ()
+setRootProp :: Prop p t r m => Connection -> p -> t -> r -> m ()
 setRootProp c = setProp c (X.getRoot c)
-
-setRootXids :: (AtomLike a, XidLike p, XidLike v, BasicEwmhCtx m)
-            => Connection -> a -> p -> [v] -> m ()
-setRootXids c = setXids c (X.getRoot c)
-
-changeRootProperty :: MonadIO m
-                   => Connection -> ATOM -> ATOM -> PropMode -> [Word8] -> m ()
-changeRootProperty c p t pm vs = simpleChangeProperty c (X.getRoot c) p t pm vs
-
-getUtf8String :: BasicEwmhCtx m => Connection -> WINDOW -> ATOM -> m (Either SomeError [String])
-getUtf8String c w prop = do
-    type_ <- unsafeLookupATOM UTF8_STRING
-    fmap (toString . X.value_GetPropertyReply) <$> simpleGetProperty c w prop type_
-
-setUtf8String :: BasicEwmhCtx m => Connection -> WINDOW -> ATOM -> [String] -> m ()
-setUtf8String c w prop strs = do
-    type_ <- unsafeLookupATOM UTF8_STRING
-    simpleChangeProperty c w prop type_ PropModeReplace $ toBytes (intersperse "\0" strs)
-    -- fmap (toString . value_GetPropertyReply) <$> simpleGetProperty c w prop type_
 
 {-
 getString :: (Functor m, MonadEwmh m) => WINDOW -> String -> m (Either SomeError [String])
@@ -416,7 +307,7 @@ getNetSupported :: BasicEwmhCtx m => Connection -> m (Either SomeError NetSuppor
 getNetSupported c = runExceptT $ do
     atomids <- mapM lookupAtomId
         =<< eitherToExcept
-        =<< getRootXids c NET_SUPPORTED AtomATOM
+        =<< getRootProp c NET_SUPPORTED AtomATOM
     return $ NetSupported (atoms atomids) (states atomids) (actions atomids) (types atomids)
     where
     -- yeah..
@@ -436,7 +327,7 @@ setNetSupported c ns = do
     atoms''   <- insertAt types   atoms'  <$> mapM unsafeLookupATOM (netWmWindowTypes ns)
     atoms'''  <- insertAt actions atoms'' <$> mapM unsafeLookupATOM (netWmAllowedActions ns)
 
-    setRootXids c NET_SUPPORTED AtomATOM atoms'''
+    setRootProp c NET_SUPPORTED AtomATOM atoms'''
 
     where
     insertAt :: Eq t => t -> [t] -> [t] -> [t]
@@ -445,111 +336,82 @@ setNetSupported c ns = do
                          | otherwise = x : insertAt a xs as
 
 getNetClientList :: BasicEwmhCtx m => Connection -> m (Either SomeError [WINDOW])
-getNetClientList c = runExceptT $ do
-    getRootXids c NET_CLIENT_LIST AtomWINDOW
-        >>= fmap (map X.fromXid) . eitherToExcept
+getNetClientList c = getRootProp c NET_CLIENT_LIST AtomWINDOW
 
 setNetClientList :: BasicEwmhCtx m => Connection -> [WINDOW] -> m ()
-setNetClientList c = setRootXids c NET_CLIENT_LIST AtomWINDOW
+setNetClientList c = setRootProp c NET_CLIENT_LIST AtomWINDOW
 
 getNetClientListStacking :: BasicEwmhCtx m => Connection -> m (Either SomeError [WINDOW])
-getNetClientListStacking c = runExceptT $ do
-    getRootXids c NET_CLIENT_LIST_STACKING AtomWINDOW
-        >>= fmap (map X.fromXid) . eitherToExcept
+getNetClientListStacking c = getRootProp c NET_CLIENT_LIST_STACKING AtomWINDOW
 
 setNetClientListStacking :: BasicEwmhCtx m => Connection -> [WINDOW] -> m ()
-setNetClientListStacking c = setRootXids c NET_CLIENT_LIST_STACKING AtomWINDOW
+setNetClientListStacking c = setRootProp c NET_CLIENT_LIST_STACKING AtomWINDOW
 
 getNetNumberOfDesktops :: BasicEwmhCtx m => Connection -> m (Either SomeError Word32)
-getNetNumberOfDesktops c = getRootXid c NET_NUMBER_OF_DESKTOPS AtomCARDINAL
+getNetNumberOfDesktops c = getRootProp c NET_NUMBER_OF_DESKTOPS AtomCARDINAL
 
 setNetNumberOfDesktops :: BasicEwmhCtx m => Connection -> Word32 -> m ()
-setNetNumberOfDesktops c = setRootXid c NET_NUMBER_OF_DESKTOPS AtomCARDINAL
+setNetNumberOfDesktops c = setRootProp c NET_NUMBER_OF_DESKTOPS AtomCARDINAL
 
 getNetDesktopGeometry :: BasicEwmhCtx m => Connection -> m (Either SomeError (Word32, Word32))
-getNetDesktopGeometry c = toTuple <$> getRootXids c NET_DESKTOP_GEOMETRY AtomCARDINAL
-    where toTuple (Right (w:h:_)) = Right (w, h)
-          toTuple (Right _)       = Left . X.toError $ UnknownError "getNetDesktopGeometry: no values"
-          toTuple (Left e)        = Left e
+getNetDesktopGeometry c = getRootProp c NET_DESKTOP_GEOMETRY AtomCARDINAL
 
 setNetDesktopGeometry :: BasicEwmhCtx m => Connection -> (Word32, Word32) -> m ()
 setNetDesktopGeometry c = setRootProp c NET_DESKTOP_GEOMETRY AtomCARDINAL
 
 getNetDesktopViewport :: BasicEwmhCtx m => Connection -> m (Either SomeError [(Word32, Word32)])
-getNetDesktopViewport c = runExceptT $ do
-    getRootXids c NET_DESKTOP_VIEWPORT AtomCARDINAL
-        >>= fmap (toTuples . map X.fromXid) . eitherToExcept
-    where toTuples (x:y:rest) = (x,y) : toTuples rest
-          toTuples _          = []
+getNetDesktopViewport c = getRootProp c NET_DESKTOP_VIEWPORT AtomCARDINAL
 
 setNetDesktopViewport :: BasicEwmhCtx m => Connection -> [(Word32, Word32)] -> m ()
 setNetDesktopViewport c = setRootProp c NET_DESKTOP_VIEWPORT AtomCARDINAL
 
 getNetCurrentDesktop :: BasicEwmhCtx m => Connection -> m (Either SomeError Word32)
-getNetCurrentDesktop c = getRootXid c NET_CURRENT_DESKTOP AtomCARDINAL
+getNetCurrentDesktop c = getRootProp c NET_CURRENT_DESKTOP AtomCARDINAL
 
 setNetCurrentDesktop :: BasicEwmhCtx m => Connection -> Word32 -> m ()
-setNetCurrentDesktop c = setRootXid c NET_CURRENT_DESKTOP AtomCARDINAL
+setNetCurrentDesktop c = setRootProp c NET_CURRENT_DESKTOP AtomCARDINAL
 
 getNetDesktopNames :: BasicEwmhCtx m => Connection -> m (Either SomeError [String])
--- getNetDesktopNames c = unsafeLookupATOM NET_DESKTOP_NAMES >>= getUtf8String c (X.getRoot c)
 getNetDesktopNames c = getProp c (X.getRoot c) NET_DESKTOP_NAMES UTF8_STRING
 
 setNetDesktopNames :: BasicEwmhCtx m => Connection -> [String] -> m ()
-setNetDesktopNames c v = do
-    a <- unsafeLookupATOM NET_DESKTOP_NAMES
-    setUtf8String c (X.getRoot c) a v
+setNetDesktopNames c = setRootProp c NET_DESKTOP_NAMES UTF8_STRING
 
 getActiveWindow :: BasicEwmhCtx m => Connection -> m (Either SomeError WINDOW)
-getActiveWindow c = getRootXid c NET_ACTIVE_WINDOW AtomWINDOW
+getActiveWindow c = getRootProp c NET_ACTIVE_WINDOW AtomWINDOW
 
 setActiveWindow :: BasicEwmhCtx m => Connection -> WINDOW -> m ()
-setActiveWindow c = setRootXid c NET_ACTIVE_WINDOW AtomWINDOW
+setActiveWindow c = setRootProp c NET_ACTIVE_WINDOW AtomWINDOW
 
 getNetWorkarea :: BasicEwmhCtx m => Connection -> m (Either SomeError (Word32, Word32, Word32, Word32))
-getNetWorkarea c = toTuple <$> getRootXids c NET_WORKAREA AtomCARDINAL
-    where toTuple (Right (x:y:w:h:_)) = Right (x, y, w, h)
-          toTuple (Right _)           = Left . X.toError $ UnknownError "getNetWorkarea: no values"
-          toTuple (Left e)            = Left e
+getNetWorkarea c = getRootProp c NET_WORKAREA AtomCARDINAL
 
 setNetWorkarea :: BasicEwmhCtx m => Connection -> (Word32, Word32, Word32, Word32) -> m ()
 setNetWorkarea c = setRootProp c NET_WORKAREA AtomCARDINAL
 
 getNetSupportingWmCheck :: BasicEwmhCtx m => Connection -> m (Either SomeError WINDOW)
-getNetSupportingWmCheck c = getRootXid c NET_SUPPORTING_WM_CHECK AtomWINDOW
+getNetSupportingWmCheck c = getRootProp c NET_SUPPORTING_WM_CHECK AtomWINDOW
 
 setNetSupportingWmCheck :: BasicEwmhCtx m => Connection -> WINDOW -> m ()
-setNetSupportingWmCheck c = setRootXid c NET_SUPPORTING_WM_CHECK AtomWINDOW
+setNetSupportingWmCheck c = setRootProp c NET_SUPPORTING_WM_CHECK AtomWINDOW
 
 getNetVirtualRoots :: BasicEwmhCtx m => Connection -> m (Either SomeError [WINDOW])
-getNetVirtualRoots c = runExceptT $ do
-    getRootXids c NET_VIRTUAL_ROOTS AtomWINDOW
-        >>= fmap (map X.fromXid) . eitherToExcept
+getNetVirtualRoots c = getRootProp c NET_VIRTUAL_ROOTS AtomWINDOW
 
 setNetVirtualRoots :: BasicEwmhCtx m => Connection -> [WINDOW] -> m ()
-setNetVirtualRoots c = setRootXids c NET_VIRTUAL_ROOTS AtomWINDOW
+setNetVirtualRoots c = setRootProp c NET_VIRTUAL_ROOTS AtomWINDOW
 
 getNetDesktopLayout :: BasicEwmhCtx m => Connection -> m (Either SomeError NetDesktopLayout)
-getNetDesktopLayout conn = do
-    toNetDesktopLayout <$> getRootXids conn NET_DESKTOP_LAYOUT AtomCARDINAL
-    where
-    toNetDesktopLayout (Right (o:c:r:s:_)) = Right $ NetDesktopLayout
-        { orientation     = X.fromBit $ fromIntegral (o :: Word32)
-        , starting_corner = X.fromBit $ fromIntegral (s :: Word32)
-        , columns         = fromIntegral (c :: Word32)
-        , rows            = fromIntegral (r :: Word32)
-        }
-    toNetDesktopLayout (Left e)  = Left e
-    toNetDesktopLayout (Right _) = Left . X.toError $ UnknownError "getNetDesktopLayout: no values"
+getNetDesktopLayout conn = getRootProp conn NET_DESKTOP_LAYOUT AtomCARDINAL
 
 setNetDesktopLayout :: BasicEwmhCtx m => Connection -> NetDesktopLayout -> m ()
 setNetDesktopLayout c = setRootProp c NET_DESKTOP_LAYOUT AtomCARDINAL
 
 getNetShowingDesktop :: BasicEwmhCtx m => Connection -> m (Either SomeError Word32)
-getNetShowingDesktop c = getRootXid c NET_SHOWING_DESKTOP AtomCARDINAL
+getNetShowingDesktop c = getRootProp c NET_SHOWING_DESKTOP AtomCARDINAL
 
 setNetShowingDesktop :: BasicEwmhCtx m => Connection -> Word32 -> m ()
-setNetShowingDesktop c = setRootXid c NET_SHOWING_DESKTOP AtomCARDINAL
+setNetShowingDesktop c = setRootProp c NET_SHOWING_DESKTOP AtomCARDINAL
 
 --------------------------------
 -- Other Root Window Messages --
@@ -609,56 +471,59 @@ requestNetRequestFrameExtents c w = sendRequest c w NET_REQUEST_FRAME_EXTENTS ([
 -----------------------------------
 
 getNetWmName :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError [String])
-getNetWmName c w = unsafeLookupATOM NET_WM_NAME >>= getUtf8String c w
+getNetWmName c w = getProp c w NET_WM_NAME UTF8_STRING
 
 setNetWmName :: BasicEwmhCtx m => Connection -> WINDOW -> [String] -> m ()
-setNetWmName c w v = unsafeLookupATOM NET_WM_NAME >>= flip (setUtf8String c w) v
+setNetWmName c w = setProp c w NET_WM_NAME UTF8_STRING
 
 getNetWmVisibleName :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError [String])
-getNetWmVisibleName c w = unsafeLookupATOM NET_WM_VISIBLE_NAME >>= getUtf8String c w
+getNetWmVisibleName c w = getProp c w NET_WM_VISIBLE_NAME UTF8_STRING
 
 setNetWmVisibleName :: BasicEwmhCtx m => Connection -> WINDOW -> [String] -> m ()
-setNetWmVisibleName c w v = unsafeLookupATOM NET_WM_VISIBLE_NAME >>= flip (setUtf8String c w) v
+setNetWmVisibleName c w = setProp c w NET_WM_VISIBLE_NAME UTF8_STRING
 
 getNetWmIconName :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError [String])
-getNetWmIconName c w = unsafeLookupATOM NET_WM_ICON_NAME >>= getUtf8String c w
+getNetWmIconName c w = getProp c w NET_WM_ICON_NAME UTF8_STRING
 
 setNetWmIconName :: BasicEwmhCtx m => Connection -> WINDOW -> [String] -> m ()
-setNetWmIconName c w v = unsafeLookupATOM NET_WM_ICON_NAME >>= flip (setUtf8String c w) v
+setNetWmIconName c w = setProp c w NET_WM_ICON_NAME UTF8_STRING
 
 getNetWmVisibleIconName :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError [String])
-getNetWmVisibleIconName c w = unsafeLookupATOM NET_WM_VISIBLE_ICON_NAME >>= getUtf8String c w
+getNetWmVisibleIconName c w = getProp c w NET_WM_VISIBLE_ICON_NAME UTF8_STRING
 
 setNetWmVisibleIconName :: BasicEwmhCtx m => Connection -> WINDOW -> [String] -> m ()
-setNetWmVisibleIconName c w v = unsafeLookupATOM NET_WM_VISIBLE_ICON_NAME >>= flip (setUtf8String c w) v
+setNetWmVisibleIconName c w = setProp c w NET_WM_VISIBLE_ICON_NAME UTF8_STRING
 
 getNetWmDesktop :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError Word32)
-getNetWmDesktop c w = getXid c w NET_WM_DESKTOP AtomCARDINAL
+getNetWmDesktop c w = getProp c w NET_WM_DESKTOP AtomCARDINAL
 
 setNetWmDesktop :: BasicEwmhCtx m => Connection -> WINDOW -> Word32 -> m ()
-setNetWmDesktop c w = setXid c w NET_WM_DESKTOP AtomCARDINAL
+setNetWmDesktop c w = setProp c w NET_WM_DESKTOP AtomCARDINAL
 
 requestNetWmDesktop ::BasicEwmhCtx m => Connection -> WINDOW -> NetWmDesktop -> m ()
 requestNetWmDesktop c w d = sendRequest c w NET_WM_DESKTOP [desktop, source]
     where
     desktop = netWmDesktop_new_desktop d
-    source  = fromIntegral . toBit . netWmDesktop_source_indication $ d
+    source  = X.toValue $ netWmDesktop_source_indication d
 
 getNetWmWindowType :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError [NET_WM_WINDOW_TYPE])
 getNetWmWindowType c w = runExceptT $ do
-    getXids c w NET_WM_WINDOW_TYPE AtomATOM
+    getProp c w NET_WM_WINDOW_TYPE AtomATOM
         >>= eitherToExcept
         >>= fmap (catMaybes . map fromAtom . catMaybes) . mapM lookupAtomId
 
 setNetWmWindowType :: BasicEwmhCtx m => Connection -> WINDOW -> [NET_WM_WINDOW_TYPE] -> m ()
 setNetWmWindowType c w vs = do
-    mapM unsafeLookupATOM vs >>= setXids c w NET_WM_WINDOW_TYPE AtomATOM
+    mapM unsafeLookupATOM vs >>= setProp c w NET_WM_WINDOW_TYPE AtomATOM
 
 getNetWmState :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError [NET_WM_STATE])
 getNetWmState c w = runExceptT $ do
-    getXids c w NET_WM_STATE AtomATOM
+    getProp c w NET_WM_STATE AtomATOM
         >>= eitherToExcept
         >>= fmap (catMaybes . map fromAtom . catMaybes) . mapM lookupAtomId
 
 setNetWmState :: BasicEwmhCtx m => Connection -> WINDOW -> [NET_WM_STATE] -> m ()
-setNetWmState c w vs = mapM unsafeLookupATOM vs >>= setXids c w NET_WM_STATE AtomATOM
+setNetWmState c w vs = mapM unsafeLookupATOM vs >>= setProp c w NET_WM_STATE AtomATOM
+
+-- requestNetWmState :: BasicEwmhCtx m => Connection -> WINDOW -> [NetWmStateRequest] -> m ()
+-- requestNetWmState = do
