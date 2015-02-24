@@ -3,7 +3,10 @@
 module Graphics.XHB.Ewmh.Values where
 
 import Data.Typeable (Typeable)
+import Data.Binary.Get (getWord32host)
+import Data.Binary.Put (putWord32host)
 import Graphics.XHB (SimpleEnum(..))
+import Graphics.XHB.Ewmh.Serialize
 
 data Gravity = WinGravity
              | NorthWest
@@ -67,6 +70,10 @@ data NET_DESKTOP_LAYOUT_ORIENTATION = NET_WM_ORIENTATION_HORZ
                                     | NET_WM_ORIENTATION_VERT
     deriving (Enum, Eq, Ord, Read, Show, Typeable)
 
+instance Serialize NET_DESKTOP_LAYOUT_ORIENTATION where
+    serialize   = putWord32host . toValue
+    deserialize = fmap fromValue getWord32host
+
 instance SimpleEnum NET_DESKTOP_LAYOUT_ORIENTATION where
     toValue v = case v of
         NET_WM_ORIENTATION_HORZ -> 0
@@ -82,6 +89,10 @@ data NET_DESKTOP_LAYOUT_STARTING_CORNER = NET_WM_TOPLEFT
                                         | NET_WM_BOTTOMRIGHT
                                         | NET_WM_BOTTOMLEFT
     deriving (Enum, Eq, Ord, Read, Show, Typeable)
+
+instance Serialize NET_DESKTOP_LAYOUT_STARTING_CORNER where
+    serialize   = putWord32host . toValue
+    deserialize = fmap fromValue getWord32host
 
 instance SimpleEnum NET_DESKTOP_LAYOUT_STARTING_CORNER where
     toValue v = case v of

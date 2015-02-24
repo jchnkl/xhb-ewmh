@@ -127,25 +127,3 @@ instance Serialize ClientMessageData where
                                      putSkip32 (5 - length ws)
 
     deserialize = error "deserialize for ClientMessageData not implemented"
-
-instance Serialize NET_DESKTOP_LAYOUT_ORIENTATION where
-    serialize   = putWord32host . toValue
-    deserialize = fmap fromValue getWord32host
-
-instance Serialize NET_DESKTOP_LAYOUT_STARTING_CORNER where
-    serialize   = putWord32host . toValue
-    deserialize = fmap fromValue getWord32host
-
-instance Serialize NetDesktopLayout where
-    serialize (NetDesktopLayout o s c r) = do
-        serialize o
-        serialize c
-        serialize r
-        serialize s
-
-    deserialize = do
-        o <- deserialize
-        c <- deserialize
-        r <- deserialize
-        s <- deserialize
-        return $ NetDesktopLayout o s c r

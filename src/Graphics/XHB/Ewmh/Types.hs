@@ -12,6 +12,7 @@ import Graphics.XHB (ButtonIndex(..), StackMode(..), WINDOW)
 import Graphics.XHB.Atom
 import Graphics.XHB.Ewmh.Atoms
 import Graphics.XHB.Ewmh.Values
+import Graphics.XHB.Ewmh.Serialize
 
 type EwmhT = AtomT
 
@@ -34,6 +35,20 @@ data NetDesktopLayout = NetDesktopLayout
     , rows            :: Word32
     }
     deriving (Eq, Ord, Read, Show, Typeable)
+
+instance Serialize NetDesktopLayout where
+    serialize (NetDesktopLayout o s c r) = do
+        serialize o
+        serialize c
+        serialize r
+        serialize s
+
+    deserialize = do
+        o <- deserialize
+        c <- deserialize
+        r <- deserialize
+        s <- deserialize
+        return $ NetDesktopLayout o s c r
 
 data NetMoveresizeWindow = NetMoveresizeWindow
     { netMoveresizeWindow_sourceIndication :: SourceIndication
