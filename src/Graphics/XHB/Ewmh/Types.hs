@@ -94,10 +94,9 @@ data NetWmDesktop = NetWmDesktop
     deriving (Eq, Ord, Read, Show, Typeable)
 
 data NetWmState = NetWmState
-    { netWmState_window :: WINDOW
-    , netWmState_action :: NET_WM_STATE_ACTION
+    { netWmState_action :: NET_WM_STATE_ACTION
     , netWmState_first_property :: NET_WM_STATE
-    , netWmState_second_property :: NET_WM_STATE
+    , netWmState_second_property :: Maybe NET_WM_STATE
     , netWmState_source_indication :: SourceIndication
     }
-    deriving (Eq, Ord, Show, Typeable)
+    deriving (Eq, Ord, Read, Show, Typeable)

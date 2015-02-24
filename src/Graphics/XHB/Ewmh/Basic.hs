@@ -382,5 +382,15 @@ getNetWmState c w = runExceptT $ do
 setNetWmState :: BasicEwmhCtx m => Connection -> WINDOW -> [NET_WM_STATE] -> m ()
 setNetWmState c w vs = mapM unsafeLookupATOM vs >>= setProp c w NET_WM_STATE AtomATOM
 
--- requestNetWmState :: BasicEwmhCtx m => Connection -> WINDOW -> [NetWmStateRequest] -> m ()
--- requestNetWmState = do
+requestNetWmState :: BasicEwmhCtx m => Connection -> WINDOW -> NetWmState -> m ()
+requestNetWmState c w v = do
+    a1 <- p1
+    a2 <- p2
+    sendRequest c w NET_WM_STATE ([action, a1, a2, source] :: [Word32])
+    where
+    action = X.toValue . netWmState_action $ v
+    source = X.toValue . netWmState_source_indication $ v
+    p1 = fmap (X.fromXid . X.toXid) $ unsafeLookupATOM $ netWmState_first_property v
+    p2 = case netWmState_second_property v of
+        Nothing -> return 0
+        Just n  -> fmap (X.fromXid . X.toXid) $ unsafeLookupATOM n
