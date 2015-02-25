@@ -6,6 +6,8 @@ license:             BSD2
 license-file:        LICENSE
 author:              Jochen Keil
 maintainer:          Jochen Keil <jochen.keil+xhb-ewmh@gmail.com>
+homepage:            http://github.com/jotrk/xhb-ewmh/
+bug-reports:         http://github.com/jotrk/xhb-ewmh/issues
 
 category:            Graphics
 build-type:          Simple
