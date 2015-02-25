@@ -121,12 +121,12 @@ instance Serialize NetDesktopLayout where
         return $ NetDesktopLayout o s c r
 
 data NetMoveresizeWindow = NetMoveresizeWindow
-    { netMoveresizeWindow_sourceIndication :: SourceIndication
-    , netMoveresizeWindow_gravity          :: Gravity
-    , netMoveresizeWindow_x                :: Maybe Int
-    , netMoveresizeWindow_y                :: Maybe Int
-    , netMoveresizeWindow_width            :: Maybe Word32
-    , netMoveresizeWindow_height           :: Maybe Word32
+    { netMoveresizeWindow_source_indication :: SourceIndication
+    , netMoveresizeWindow_gravity           :: Gravity
+    , netMoveresizeWindow_x                 :: Maybe Int
+    , netMoveresizeWindow_y                 :: Maybe Int
+    , netMoveresizeWindow_width             :: Maybe Word32
+    , netMoveresizeWindow_height            :: Maybe Word32
     }
     deriving (Eq, Ord, Read, Show, Typeable)
 
@@ -136,11 +136,11 @@ deriving instance Ord ButtonIndex
 deriving instance Read ButtonIndex
 
 data NetWmMoveresize = NetWmMoveresize
-    { netWmMoveresize_x_root           :: Maybe Int
-    , netWmMoveresize_y_root           :: Maybe Int
-    , netWmMoveresize_direction        :: NET_WM_MOVERESIZE_DIRECTION
-    , netWmMoveresize_button           :: ButtonIndex
-    , netWmMoveresize_sourceIndication :: SourceIndication
+    { netWmMoveresize_x_root            :: Maybe Int
+    , netWmMoveresize_y_root            :: Maybe Int
+    , netWmMoveresize_direction         :: NET_WM_MOVERESIZE_DIRECTION
+    , netWmMoveresize_button            :: ButtonIndex
+    , netWmMoveresize_source_indication :: SourceIndication
     }
     deriving (Eq, Ord, Read, Show, Typeable)
 
@@ -151,9 +151,9 @@ deriving instance Read StackMode
 
 -- no Read because there's no Read instance for WINDOW
 data NetRestackWindow = NetRestackWindow
-    { netRestackWindow_sourceIndication :: SourceIndication
-    , netRestackWindow_sibling_window   :: WINDOW
-    , netRestackWindow_detail           :: StackMode
+    { netRestackWindow_source_indication :: SourceIndication
+    , netRestackWindow_sibling_window    :: WINDOW
+    , netRestackWindow_detail            :: StackMode
     }
     deriving (Eq, Ord, Show, Typeable)
 

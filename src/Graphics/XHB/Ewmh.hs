@@ -389,7 +389,7 @@ requestNetMoveresizeWindow c w mr = sendRequest c w NET_MOVERESIZE_WINDOW values
     width  = fromIntegral <$> netMoveresizeWindow_width mr
     height = fromIntegral <$> netMoveresizeWindow_height mr
 
-    sourceIndicationBit = case netMoveresizeWindow_sourceIndication mr of
+    sourceIndicationBit = case netMoveresizeWindow_source_indication mr of
         SourceApplication -> 12
         SourcePager       -> 13
         _                 -> 0
@@ -412,13 +412,13 @@ requestNetWmMoveresize c w mr = do
     y_root           = fromMaybe 0 $ netWmMoveresize_y_root mr
     direction        = X.toValue $ netWmMoveresize_direction mr
     button           = X.toValue $ netWmMoveresize_button mr
-    sourceIndication = X.toValue $ netWmMoveresize_sourceIndication mr
+    sourceIndication = X.toValue $ netWmMoveresize_source_indication mr
 
 requestNetRestackWindow :: EwmhCtx m => Connection -> WINDOW -> NetRestackWindow -> m ()
 requestNetRestackWindow c w rw = do
     sendRequest c w NET_RESTACK_WINDOW ([sourceIndication, sibling_window, detail] :: [Word32])
     where
-    sourceIndication = X.toValue $ netRestackWindow_sourceIndication rw
+    sourceIndication = X.toValue $ netRestackWindow_source_indication rw
     sibling_window   = X.fromXid . X.toXid $ netRestackWindow_sibling_window rw
     detail           = X.toValue $ netRestackWindow_detail rw
 
