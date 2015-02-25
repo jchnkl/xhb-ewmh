@@ -61,6 +61,7 @@ data EWMH_ATOM =
     | NET_WM_BYPASS_COMPOSITOR
 
     -- Window Manager Protocols
+    | WM_PROTOCOLS
     | NET_WM_PING
     | NET_WM_SYNC_REQUEST
     | NET_WM_SYNC_REQUEST_COUNTER

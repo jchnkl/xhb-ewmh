@@ -475,10 +475,22 @@ getNetWmBypassCompositor c w = getProp c w NET_WM_BYPASS_COMPOSITOR AtomCARDINAL
 setNetWmBypassCompositor :: BasicEwmhCtx m => Connection -> WINDOW -> Word32 -> m ()
 setNetWmBypassCompositor c w = setProp c w NET_WM_BYPASS_COMPOSITOR AtomCARDINAL
 
--- TODO
+requestNetWmPing :: BasicEwmhCtx m => Connection -> WINDOW -> m ()
+requestNetWmPing c w = do
+    unsafeLookupATOM NET_WM_PING >>= sendRequest c w WM_PROTOCOLS . values
+    where values a = [ X.fromXid (X.toXid a)
+                     , X.toValue TimeCurrentTime
+                     , X.fromXid (X.toXid w)
+                     ] :: [Word32]
 
--- requestNetWmPing
--- requestNetWmSyncRequest
+requestNetWmSyncRequest :: BasicEwmhCtx m => Connection -> WINDOW -> NetWmSyncRequest -> m ()
+requestNetWmSyncRequest c w sr = do
+    unsafeLookupATOM NET_WM_SYNC_REQUEST >>= sendRequest c w WM_PROTOCOLS . values
+    where values a = [ X.fromXid (X.toXid a)
+                     , X.toValue TimeCurrentTime
+                     , netWmSyncRequest_low sr
+                     , netWmSyncRequest_high sr
+                     ]
 
 requestNetWmFullscreenMonitors :: BasicEwmhCtx m
                                => Connection -> WINDOW -> NetWmFullscreenMonitors -> m ()

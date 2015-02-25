@@ -277,6 +277,12 @@ instance Serialize NetWmOpaqueRegion where
                                     <*> deserialize
                                     <*> deserialize
 
+data NetWmSyncRequest = NetWmSyncRequest
+    { netWmSyncRequest_low  :: Word32
+    , netWmSyncRequest_high :: Word32
+    }
+    deriving (Eq, Ord, Read, Show, Typeable)
+
 data NetWmFullscreenMonitors = NetWmFullscreenMonitors
     { netWmFullscreenMonitors_top               :: Word32
     , netWmFullscreenMonitors_bottom            :: Word32
