@@ -1,37 +1,103 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
+{-# LANGUAGE ConstraintKinds     #-}
 {-# LANGUAGE DeriveDataTypeable  #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE FlexibleInstances   #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE ConstraintKinds #-}
 
 module Graphics.XHB.Ewmh.Basic
-    where
-    -- ( module Graphics.XHB.Ewmh.Types
-    -- -- , Utf8String(..)
-    -- , runEwmhT
-    -- , atomToXidLike
-    -- , simpleGetProperty
-    -- , simpleChangeProperty
-    -- -- , getString
-    -- -- , getUtf8String
-    -- -- , ewmhRequest
-    -- -- , changeNetWmState
-    -- -- , netActiveWindow
-    -- -- , getNetActiveWindow
-    -- -- , netRestackWindow
-    -- -- , netMoveResizeWindow
-    -- ) where
+    ( runEwmhT
+    , getNetSupported
+    , setNetSupported
+    , getNetClientList
+    , setNetClientList
+    , getNetClientListStacking
+    , setNetClientListStacking
+    , getNetNumberOfDesktops
+    , setNetNumberOfDesktops
+    , requestNetNumberOfDesktops
+    , getNetDesktopGeometry
+    , setNetDesktopGeometry
+    , requestNetDesktopGeometry
+    , getNetDesktopViewport
+    , setNetDesktopViewport
+    , requestNetDesktopViewport
+    , getNetCurrentDesktop
+    , setNetCurrentDesktop
+    , requestNetCurrentDesktop
+    , getNetDesktopNames
+    , setNetDesktopNames
+    , getActiveWindow
+    , setActiveWindow
+    , requestNetActiveWindow
+    , getNetWorkarea
+    , setNetWorkarea
+    , getNetSupportingWmCheck
+    , setNetSupportingWmCheck
+    , getNetVirtualRoots
+    , setNetVirtualRoots
+    , getNetDesktopLayout
+    , setNetDesktopLayout
+    , getNetShowingDesktop
+    , setNetShowingDesktop
+    , requestNetShowingDesktop
+    , requestNetCloseWindow
+    , requestNetMoveresizeWindow
+    , requestNetWmMoveresize
+    , requestNetRestackWindow
+    , requestNetRequestFrameExtents
+    , getNetWmName
+    , setNetWmName
+    , getNetWmVisibleName
+    , setNetWmVisibleName
+    , getNetWmIconName
+    , setNetWmIconName
+    , getNetWmVisibleIconName
+    , setNetWmVisibleIconName
+    , getNetWmDesktop
+    , setNetWmDesktop
+    , requestNetWmDesktop
+    , getNetWmWindowType
+    , setNetWmWindowType
+    , getNetWmState
+    , setNetWmState
+    , requestNetWmState
+    , getNetWmAllowedActions
+    , setNetWmAllowedActions
+    , getNetWmStrut
+    , setNetWmStrut
+    , getNetWmStrutPartial
+    , setNetWmStrutPartial
+    , getNetWmIconGeometry
+    , setNetWmIconGeometry
+    , getNetWmIcon
+    , setNetWmIcon
+    , getNetWmPID
+    , setNetWmPID
+    , getNetWmHandledIcons
+    , setNetWmHandledIcons
+    , getNetWmUserTime
+    , setNetWmUserTime
+    , getNetWmUserTimeWindow
+    , setNetWmUserTimeWindow
+    , getNetFrameExtents
+    , setNetFrameExtents
+    , getNetWmOpaqueRegion
+    , setNetWmOpaqueRegion
+    , getNetWmBypassCompositor
+    , setNetWmBypassCompositor
+    , requestNetWmPing
+    , requestNetWmSyncRequest
+    , requestNetWmFullscreenMonitors
+    ) where
 
-import qualified Data.HashMap.Lazy as M
 import Data.Bits ((.|.), shiftL)
 import Data.Word (Word32)
 import Data.Maybe (isJust, catMaybes, fromMaybe)
 import Control.Monad (join, void)
 import Control.Monad.Except (ExceptT(..), runExceptT)
-import Control.Monad.State (gets)
 import Control.Applicative (Applicative(..), (<$>))
 import Control.Monad.IO.Class (MonadIO(..))
 import Control.Monad.Trans.Maybe (MaybeT(..))
