@@ -408,3 +408,85 @@ getNetWmAllowedActions c w = runExceptT $ do
 
 setNetWmAllowedActions :: BasicEwmhCtx m => Connection -> WINDOW -> [NET_WM_ALLOWED_ACTIONS] -> m ()
 setNetWmAllowedActions c w vs = mapM unsafeLookupATOM vs >>= setProp c w NET_WM_ALLOWED_ACTIONS AtomATOM
+
+getNetWmStrut :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError NetWmStrut)
+getNetWmStrut c w = getProp c w NET_WM_STRUT AtomCARDINAL
+
+setNetWmStrut :: BasicEwmhCtx m => Connection -> WINDOW -> NetWmStrut -> m ()
+setNetWmStrut c w = setProp c w NET_WM_STRUT AtomCARDINAL
+
+getNetWmStrutPartial :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError NetWmStrutPartial)
+getNetWmStrutPartial c w = getProp c w NET_WM_STRUT_PARTIAL AtomCARDINAL
+
+setNetWmStrutPartial :: BasicEwmhCtx m => Connection -> WINDOW -> NetWmStrutPartial -> m ()
+setNetWmStrutPartial c w = setProp c w NET_WM_STRUT_PARTIAL AtomCARDINAL
+
+getNetWmIconGeometry :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError NetWmIconGeometry)
+getNetWmIconGeometry c w = getProp c w NET_WM_ICON_GEOMETRY AtomCARDINAL
+
+setNetWmIconGeometry :: BasicEwmhCtx m => Connection -> WINDOW -> NetWmIconGeometry -> m ()
+setNetWmIconGeometry c w = setProp c w NET_WM_ICON_GEOMETRY AtomCARDINAL
+
+getNetWmIcon :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError NetWmIcon)
+getNetWmIcon c w = getProp c w NET_WM_ICON AtomCARDINAL
+
+setNetWmIcon :: BasicEwmhCtx m => Connection -> WINDOW -> NetWmIcon -> m ()
+setNetWmIcon c w = setProp c w NET_WM_ICON AtomCARDINAL
+
+getNetWmPID :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError Word32)
+getNetWmPID c w = getProp c w NET_WM_PID AtomCARDINAL
+
+setNetWmPID :: BasicEwmhCtx m => Connection -> WINDOW -> Word32 -> m ()
+setNetWmPID c w = setProp c w NET_WM_PID AtomCARDINAL
+
+getNetWmHandledIcons :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError Word32)
+getNetWmHandledIcons c w = getProp c w NET_WM_HANDLED_ICONS AtomCARDINAL
+
+setNetWmHandledIcons :: BasicEwmhCtx m => Connection -> WINDOW -> Word32 -> m ()
+setNetWmHandledIcons c w = setProp c w NET_WM_HANDLED_ICONS AtomCARDINAL
+
+getNetWmUserTime :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError Word32)
+getNetWmUserTime c w = getProp c w NET_WM_USER_TIME AtomCARDINAL
+
+setNetWmUserTime :: BasicEwmhCtx m => Connection -> WINDOW -> Word32 -> m ()
+setNetWmUserTime c w = setProp c w NET_WM_USER_TIME AtomCARDINAL
+
+getNetWmUserTimeWindow :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError WINDOW)
+getNetWmUserTimeWindow c w = getProp c w NET_WM_USER_TIME_WINDOW AtomWINDOW
+
+setNetWmUserTimeWindow :: BasicEwmhCtx m => Connection -> WINDOW -> WINDOW -> m ()
+setNetWmUserTimeWindow c w = setProp c w NET_WM_USER_TIME_WINDOW AtomWINDOW
+
+getNetFrameExtents :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError NetFrameExtents)
+getNetFrameExtents c w = getProp c w NET_FRAME_EXTENTS AtomCARDINAL
+
+setNetFrameExtents :: BasicEwmhCtx m => Connection -> WINDOW -> NetFrameExtents -> m ()
+setNetFrameExtents c w = setProp c w NET_FRAME_EXTENTS AtomCARDINAL
+
+getNetWmOpaqueRegion :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError NetWmOpaqueRegion)
+getNetWmOpaqueRegion c w = getProp c w NET_WM_OPAQUE_REGION AtomCARDINAL
+
+setNetWmOpaqueRegion :: BasicEwmhCtx m => Connection -> WINDOW -> NetWmOpaqueRegion -> m ()
+setNetWmOpaqueRegion c w = setProp c w NET_WM_OPAQUE_REGION AtomCARDINAL
+
+getNetWmBypassCompositor :: BasicEwmhCtx m => Connection -> WINDOW -> m (Either SomeError Word32)
+getNetWmBypassCompositor c w = getProp c w NET_WM_BYPASS_COMPOSITOR AtomCARDINAL
+
+setNetWmBypassCompositor :: BasicEwmhCtx m => Connection -> WINDOW -> Word32 -> m ()
+setNetWmBypassCompositor c w = setProp c w NET_WM_BYPASS_COMPOSITOR AtomCARDINAL
+
+-- TODO
+
+-- requestNetWmPing
+-- requestNetWmSyncRequest
+
+requestNetWmFullscreenMonitors :: BasicEwmhCtx m
+                               => Connection -> WINDOW -> NetWmFullscreenMonitors -> m ()
+requestNetWmFullscreenMonitors c w v = do
+    sendRequest c w NET_WM_FULLSCREEN_MONITORS [top, bottom, left, right, source]
+    where
+    top    = netWmFullscreenMonitors_top v
+    bottom = netWmFullscreenMonitors_bottom v
+    left   = netWmFullscreenMonitors_left v
+    right  = netWmFullscreenMonitors_right v
+    source = X.toValue . netWmFullscreenMonitors_source_indication $ v
