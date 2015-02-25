@@ -31,6 +31,67 @@ data NetSupported = NetSupported
     }
     deriving (Eq, Ord, Read, Show, Typeable)
 
+data NetDesktopGeometry = NetDesktopGeometry
+    { netDesktopGeometry_width  :: Word32
+    , netDesktopGeometry_height :: Word32
+    }
+    deriving (Eq, Ord, Read, Show, Typeable)
+
+instance Serialize NetDesktopGeometry where
+    serialize v = mapM_ ($ v) [ serialize . netDesktopGeometry_width
+                              , serialize . netDesktopGeometry_height
+                              ]
+    deserialize = NetDesktopGeometry <$> deserialize <*> deserialize
+
+data Viewport = Viewport
+    { viewport_x :: Word32
+    , viewport_y :: Word32
+    }
+    deriving (Eq, Ord, Read, Show, Typeable)
+
+instance Serialize Viewport where
+    serialize v = mapM_ ($ v) [ serialize . viewport_x
+                              , serialize . viewport_y
+                              ]
+    deserialize = Viewport <$> deserialize <*> deserialize
+
+data NetDesktopViewport = NetDesktopViewport
+    { netDesktopViewport_viewports :: [Viewport]
+    }
+    deriving (Eq, Ord, Read, Show, Typeable)
+
+instance Serialize NetDesktopViewport where
+    serialize = serialize . netDesktopViewport_viewports
+    deserialize = NetDesktopViewport <$> deserialize
+
+data Workarea = Workarea
+    { workarea_x      :: Word32
+    , workarea_y      :: Word32
+    , workarea_width  :: Word32
+    , workarea_height :: Word32
+    }
+    deriving (Eq, Ord, Read, Show, Typeable)
+
+instance Serialize Workarea where
+    serialize v = mapM_ ($ v) [ serialize . workarea_x
+                              , serialize . workarea_y
+                              , serialize . workarea_width
+                              , serialize . workarea_height
+                              ]
+    deserialize = Workarea <$> deserialize
+                           <*> deserialize
+                           <*> deserialize
+                           <*> deserialize
+
+data NetWorkarea = NetWorkarea
+    { netWorkarea_workareas :: [Workarea]
+    }
+    deriving (Eq, Ord, Read, Show, Typeable)
+
+instance Serialize NetWorkarea where
+    serialize = serialize . netWorkarea_workareas
+    deserialize = NetWorkarea <$> deserialize
+
 data NetDesktopLayout = NetDesktopLayout
     { orientation     :: NET_DESKTOP_LAYOUT_ORIENTATION
     , starting_corner :: NET_DESKTOP_LAYOUT_STARTING_CORNER

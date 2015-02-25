@@ -212,16 +212,16 @@ getNetNumberOfDesktops c = getRootProp c NET_NUMBER_OF_DESKTOPS AtomCARDINAL
 setNetNumberOfDesktops :: BasicEwmhCtx m => Connection -> Word32 -> m ()
 setNetNumberOfDesktops c = setRootProp c NET_NUMBER_OF_DESKTOPS AtomCARDINAL
 
-getNetDesktopGeometry :: BasicEwmhCtx m => Connection -> m (Either SomeError (Word32, Word32))
+getNetDesktopGeometry :: BasicEwmhCtx m => Connection -> m (Either SomeError NetDesktopGeometry)
 getNetDesktopGeometry c = getRootProp c NET_DESKTOP_GEOMETRY AtomCARDINAL
 
-setNetDesktopGeometry :: BasicEwmhCtx m => Connection -> (Word32, Word32) -> m ()
+setNetDesktopGeometry :: BasicEwmhCtx m => Connection -> NetDesktopGeometry -> m ()
 setNetDesktopGeometry c = setRootProp c NET_DESKTOP_GEOMETRY AtomCARDINAL
 
-getNetDesktopViewport :: BasicEwmhCtx m => Connection -> m (Either SomeError [(Word32, Word32)])
+getNetDesktopViewport :: BasicEwmhCtx m => Connection -> m (Either SomeError NetDesktopViewport)
 getNetDesktopViewport c = getRootProp c NET_DESKTOP_VIEWPORT AtomCARDINAL
 
-setNetDesktopViewport :: BasicEwmhCtx m => Connection -> [(Word32, Word32)] -> m ()
+setNetDesktopViewport :: BasicEwmhCtx m => Connection -> NetDesktopViewport -> m ()
 setNetDesktopViewport c = setRootProp c NET_DESKTOP_VIEWPORT AtomCARDINAL
 
 getNetCurrentDesktop :: BasicEwmhCtx m => Connection -> m (Either SomeError Word32)
@@ -242,10 +242,10 @@ getActiveWindow c = getRootProp c NET_ACTIVE_WINDOW AtomWINDOW
 setActiveWindow :: BasicEwmhCtx m => Connection -> WINDOW -> m ()
 setActiveWindow c = setRootProp c NET_ACTIVE_WINDOW AtomWINDOW
 
-getNetWorkarea :: BasicEwmhCtx m => Connection -> m (Either SomeError (Word32, Word32, Word32, Word32))
+getNetWorkarea :: BasicEwmhCtx m => Connection -> m (Either SomeError NetWorkarea)
 getNetWorkarea c = getRootProp c NET_WORKAREA AtomCARDINAL
 
-setNetWorkarea :: BasicEwmhCtx m => Connection -> (Word32, Word32, Word32, Word32) -> m ()
+setNetWorkarea :: BasicEwmhCtx m => Connection -> NetWorkarea -> m ()
 setNetWorkarea c = setRootProp c NET_WORKAREA AtomCARDINAL
 
 getNetSupportingWmCheck :: BasicEwmhCtx m => Connection -> m (Either SomeError WINDOW)
