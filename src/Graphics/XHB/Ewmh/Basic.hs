@@ -39,7 +39,7 @@ import Data.ByteString.Lazy.Char8 (pack)
 
 import Foreign.C (CChar(..))
 import Graphics.XHB (Connection, SomeError, WINDOW, ATOM, XidLike, Atom(..))
-import Graphics.XHB (GetProperty(..), ChangeProperty(..))
+import Graphics.XHB (GetProperty(..), ChangeProperty(..), Window(..))
 import Graphics.XHB (SendEvent(..), ClientMessageEvent(..), ClientMessageData(..))
 import Graphics.XHB (PropMode(..), EventMask(..), Time(..), UnknownError(..))
 import qualified Graphics.XHB as X
@@ -212,11 +212,21 @@ getNetNumberOfDesktops c = getRootProp c NET_NUMBER_OF_DESKTOPS AtomCARDINAL
 setNetNumberOfDesktops :: BasicEwmhCtx m => Connection -> Word32 -> m ()
 setNetNumberOfDesktops c = setRootProp c NET_NUMBER_OF_DESKTOPS AtomCARDINAL
 
+requestNetNumberOfDesktops :: BasicEwmhCtx m => Connection -> Word32 -> m ()
+requestNetNumberOfDesktops c n = do
+    sendRequest c none NET_NUMBER_OF_DESKTOPS [n]
+    where none= X.fromXid $ X.toXid (X.toValue WindowNone :: Word32)
+
 getNetDesktopGeometry :: BasicEwmhCtx m => Connection -> m (Either SomeError NetDesktopGeometry)
 getNetDesktopGeometry c = getRootProp c NET_DESKTOP_GEOMETRY AtomCARDINAL
 
 setNetDesktopGeometry :: BasicEwmhCtx m => Connection -> NetDesktopGeometry -> m ()
 setNetDesktopGeometry c = setRootProp c NET_DESKTOP_GEOMETRY AtomCARDINAL
+
+requestNetDesktopGeometry :: BasicEwmhCtx m => Connection -> NetDesktopGeometry -> m ()
+requestNetDesktopGeometry c (NetDesktopGeometry w h) = do
+    sendRequest c none NET_DESKTOP_GEOMETRY [w, h]
+    where none = X.fromXid $ X.toXid (X.toValue WindowNone :: Word32)
 
 getNetDesktopViewport :: BasicEwmhCtx m => Connection -> m (Either SomeError NetDesktopViewport)
 getNetDesktopViewport c = getRootProp c NET_DESKTOP_VIEWPORT AtomCARDINAL
@@ -224,11 +234,21 @@ getNetDesktopViewport c = getRootProp c NET_DESKTOP_VIEWPORT AtomCARDINAL
 setNetDesktopViewport :: BasicEwmhCtx m => Connection -> NetDesktopViewport -> m ()
 setNetDesktopViewport c = setRootProp c NET_DESKTOP_VIEWPORT AtomCARDINAL
 
+requestNetDesktopViewport :: BasicEwmhCtx m => Connection -> Viewport -> m ()
+requestNetDesktopViewport c (Viewport x y) = do
+    sendRequest c none NET_DESKTOP_VIEWPORT [x, y]
+    where none = X.fromXid $ X.toXid (X.toValue WindowNone :: Word32)
+
 getNetCurrentDesktop :: BasicEwmhCtx m => Connection -> m (Either SomeError Word32)
 getNetCurrentDesktop c = getRootProp c NET_CURRENT_DESKTOP AtomCARDINAL
 
 setNetCurrentDesktop :: BasicEwmhCtx m => Connection -> Word32 -> m ()
 setNetCurrentDesktop c = setRootProp c NET_CURRENT_DESKTOP AtomCARDINAL
+
+requestNetCurrentDesktop :: BasicEwmhCtx m => Connection -> Word32 -> m ()
+requestNetCurrentDesktop c v = do
+    sendRequest c none NET_CURRENT_DESKTOP [v, X.toValue TimeCurrentTime]
+    where none = X.fromXid $ X.toXid (X.toValue WindowNone :: Word32)
 
 getNetDesktopNames :: BasicEwmhCtx m => Connection -> m (Either SomeError [String])
 getNetDesktopNames c = getProp c (X.getRoot c) NET_DESKTOP_NAMES UTF8_STRING
@@ -241,6 +261,15 @@ getActiveWindow c = getRootProp c NET_ACTIVE_WINDOW AtomWINDOW
 
 setActiveWindow :: BasicEwmhCtx m => Connection -> WINDOW -> m ()
 setActiveWindow c = setRootProp c NET_ACTIVE_WINDOW AtomWINDOW
+
+requestNetActiveWindow :: BasicEwmhCtx m => Connection -> NetActiveWindow -> m ()
+requestNetActiveWindow c (NetActiveWindow src mw) = do
+    sendRequest c none NET_ACTIVE_WINDOW values
+    where none = X.fromXid $ X.toXid (X.toValue WindowNone :: Word32)
+          values = [ X.toValue src
+                   , X.toValue TimeCurrentTime
+                   , maybe 0 (X.fromXid . X.toXid) mw
+                   ] :: [Word32]
 
 getNetWorkarea :: BasicEwmhCtx m => Connection -> m (Either SomeError NetWorkarea)
 getNetWorkarea c = getRootProp c NET_WORKAREA AtomCARDINAL
@@ -271,6 +300,10 @@ getNetShowingDesktop c = getRootProp c NET_SHOWING_DESKTOP AtomCARDINAL
 
 setNetShowingDesktop :: BasicEwmhCtx m => Connection -> Word32 -> m ()
 setNetShowingDesktop c = setRootProp c NET_SHOWING_DESKTOP AtomCARDINAL
+
+requestNetShowingDesktop :: BasicEwmhCtx m => Connection -> Bool -> m ()
+requestNetShowingDesktop c b = sendRequest c none NET_SHOWING_DESKTOP [fromEnum b]
+    where none = X.fromXid $ X.toXid (X.toValue WindowNone :: Word32)
 
 --------------------------------
 -- Other Root Window Messages --

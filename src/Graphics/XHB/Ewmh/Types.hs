@@ -64,6 +64,12 @@ instance Serialize NetDesktopViewport where
     serialize = serialize . netDesktopViewport_viewports
     deserialize = NetDesktopViewport <$> deserialize
 
+data NetActiveWindow = NetActiveWindow
+    { netActiveWindow_source_indication       :: SourceIndication
+    , netActiveWindow_currently_active_window :: Maybe WINDOW
+    }
+    deriving (Eq, Ord, Show, Typeable)
+
 data Workarea = Workarea
     { workarea_x      :: Word32
     , workarea_y      :: Word32
