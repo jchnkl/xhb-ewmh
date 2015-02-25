@@ -92,6 +92,10 @@ instance Serialize String where
               init_ [] = []
               init_ xs = init xs
 
+instance Serialize Word8 where
+    serialize = putWord8
+    deserialize = getWord8
+
 instance Serialize Word32 where
     serialize = putWord32host
     deserialize = getWord32host
