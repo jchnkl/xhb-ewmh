@@ -71,9 +71,6 @@ type Request p d m = (AtomLike p, Serialize d, BasicEwmhCtx m)
 eitherToExcept :: Monad m => Either e a -> ExceptT e m a
 eitherToExcept = ExceptT . return
 
-dump :: Monad m => AtomT m [AtomName]
-dump = AtomT $ gets (map atomName . M.keys . fst)
-
 runEwmhT :: (MonadIO m, Applicative m)
          => Connection -> EwmhT m a -> m (Either SomeError a)
 runEwmhT c = runAtomT
