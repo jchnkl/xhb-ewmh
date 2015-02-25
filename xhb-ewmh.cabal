@@ -28,8 +28,9 @@ library
                        xhb-atom
 
   exposed-modules:     Graphics.XHB.Ewmh,
-                       Graphics.XHB.Ewmh.Class,
-                       Graphics.XHB.Ewmh.Types
+                       Graphics.XHB.Ewmh.Atoms,
+                       Graphics.XHB.Ewmh.Types,
+                       Graphics.XHB.Ewmh.Values
 
   other-extensions:    DeriveDataTypeable,
                        FlexibleContexts,
