@@ -35,12 +35,13 @@ import Control.Monad.State (gets)
 import Control.Applicative (Applicative(..), (<$>))
 import Control.Monad.IO.Class (MonadIO(..))
 import Control.Monad.Trans.Maybe (MaybeT(..))
+import Data.ByteString.Lazy.Char8 (pack)
 
 import Foreign.C (CChar(..))
 import Graphics.XHB (Connection, SomeError, WINDOW, ATOM, XidLike, Atom(..))
 import Graphics.XHB (GetProperty(..), ChangeProperty(..))
 import Graphics.XHB (SendEvent(..), ClientMessageEvent(..), ClientMessageData(..))
-import Graphics.XHB (PropMode(..), EventMask(..), Time(..))
+import Graphics.XHB (PropMode(..), EventMask(..), Time(..), UnknownError(..))
 import qualified Graphics.XHB as X
 import Graphics.XHB.Atom
 import Graphics.XHB.Ewmh.Bits
@@ -93,9 +94,13 @@ getProp :: Prop p t r m => Connection -> WINDOW -> p -> t -> m (Either SomeError
 getProp c w p t = runExceptT $ do
     ap <- unsafeLookupATOM p
     at <- toPropertyType t
-    fmap fromReply . eitherToExcept =<< getPropertyReply (request ap at)
+    eitherToExcept
+        =<< fmap fromReply . eitherToExcept
+        =<< getPropertyReply (request ap at)
     where
-    fromReply = fromBytes . X.value_GetPropertyReply
+    fromReply r = case fromBytes (X.value_GetPropertyReply r) of
+        Right a -> Right a
+        Left  e -> Left . X.toError . UnknownError . pack $ e
     getPropertyReply req = liftIO $ X.getProperty c req >>= X.getReply
     request ap at = MkGetProperty
         { delete_GetProperty = False

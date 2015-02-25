@@ -31,8 +31,10 @@ class Serialize a where
 
     deserialize :: Get a
 
-    fromBytes :: [Word8] -> a
-    fromBytes = runGet deserialize . B.pack
+    fromBytes :: [Word8] -> Either String a
+    fromBytes bs = case runGetOrFail deserialize (B.pack bs) of
+        Right (_, _, a) -> Right a
+        Left  (_, _, e) -> Left e
 
     serializeList :: [a] -> Put
     serializeList = mapM_ serialize
