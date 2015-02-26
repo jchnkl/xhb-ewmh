@@ -315,7 +315,7 @@ requestNetCurrentDesktop c v = do
     where none = X.fromXid $ X.toXid (X.toValue WindowNone :: Word32)
 
 getNetDesktopNames :: EwmhCtx m => Connection -> m (Either SomeError [String])
-getNetDesktopNames c = getProp c (X.getRoot c) NET_DESKTOP_NAMES UTF8_STRING
+getNetDesktopNames c = getRootProp c NET_DESKTOP_NAMES UTF8_STRING
 
 setNetDesktopNames :: EwmhCtx m => Connection -> [String] -> m ()
 setNetDesktopNames c = setRootProp c NET_DESKTOP_NAMES UTF8_STRING
@@ -354,7 +354,7 @@ setNetVirtualRoots :: EwmhCtx m => Connection -> [WINDOW] -> m ()
 setNetVirtualRoots c = setRootProp c NET_VIRTUAL_ROOTS AtomWINDOW
 
 getNetDesktopLayout :: EwmhCtx m => Connection -> m (Either SomeError NetDesktopLayout)
-getNetDesktopLayout conn = getRootProp conn NET_DESKTOP_LAYOUT AtomCARDINAL
+getNetDesktopLayout c = getRootProp c NET_DESKTOP_LAYOUT AtomCARDINAL
 
 setNetDesktopLayout :: EwmhCtx m => Connection -> NetDesktopLayout -> m ()
 setNetDesktopLayout c = setRootProp c NET_DESKTOP_LAYOUT AtomCARDINAL
