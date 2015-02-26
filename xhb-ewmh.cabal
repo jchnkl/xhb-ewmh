@@ -1,5 +1,5 @@
 name:                xhb-ewmh
-version:             0.1.0.1
+version:             0.1.1.1
 synopsis:            EWMH utilities for XHB
 description:         EWMH utilities for XHB
 license:             BSD2
@@ -30,6 +30,7 @@ library
                        xhb-atom-cache
 
   exposed-modules:     Graphics.XHB.Ewmh,
+                       Graphics.XHB.Ewmh.Error,
                        Graphics.XHB.Ewmh.Atoms,
                        Graphics.XHB.Ewmh.Types,
                        Graphics.XHB.Ewmh.Values,
