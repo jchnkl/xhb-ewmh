@@ -7,21 +7,20 @@
 
 module Graphics.XHB.Ewmh.Types where
 
-import Data.Word (Word8, Word32)
-import Data.Typeable (Typeable)
-import Control.Applicative ((<$>), (<*>))
+import Control.Applicative (Applicative, (<$>), (<*>))
 import Control.Monad (replicateM)
+import Control.Monad.IO.Class (MonadIO)
+import Data.Typeable (Typeable)
+import Data.Word (Word8, Word32)
 import Graphics.XHB (ButtonIndex(..), StackMode(..), WINDOW)
 import Graphics.XHB.AtomCache
 import Graphics.XHB.Ewmh.Atoms
-import Graphics.XHB.Ewmh.Values
 import Graphics.XHB.Ewmh.Serialize
+import Graphics.XHB.Ewmh.Values
 
 type EwmhT = AtomCacheT
 
-type Ewmh = EwmhT IO
-
-type MonadEwmh = AtomCacheCtx
+type EwmhCtx m = (Applicative m, MonadIO m, AtomCacheCtx m)
 
 data NetSupported = NetSupported
     { ewmhAtoms           :: [EWMH_ATOM]

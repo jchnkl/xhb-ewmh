@@ -8,8 +8,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Graphics.XHB.Ewmh
-    ( EwmhCtx
-    , runEwmhT
+    ( runEwmhT
     , getNetSupported
     , setNetSupported
     , getNetClientList
@@ -121,15 +120,13 @@ instance XidLike Atom where
     fromXid a = X.fromValue (X.fromXid a :: Word32)
 
 class PropertyType t where
-    toPropertyType :: MonadEwmh m => t -> m ATOM
+    toPropertyType :: AtomCacheCtx m => t -> m ATOM
 
 instance PropertyType Atom where
     toPropertyType = return . X.fromXid . X.toXid
 
 instance PropertyType UTF8_STRING where
     toPropertyType = unsafeLookupATOM
-
-type EwmhCtx m = (Applicative m, MonadIO m, MonadEwmh m)
 
 type Prop p t r m = (AtomLike p, PropertyType t, Serialize r, EwmhCtx m)
 
