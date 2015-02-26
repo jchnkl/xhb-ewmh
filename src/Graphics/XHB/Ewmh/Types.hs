@@ -12,16 +12,16 @@ import Data.Typeable (Typeable)
 import Control.Applicative ((<$>), (<*>))
 import Control.Monad (replicateM)
 import Graphics.XHB (ButtonIndex(..), StackMode(..), WINDOW)
-import Graphics.XHB.Atom
+import Graphics.XHB.AtomCache
 import Graphics.XHB.Ewmh.Atoms
 import Graphics.XHB.Ewmh.Values
 import Graphics.XHB.Ewmh.Serialize
 
-type EwmhT = AtomT
+type EwmhT = AtomCacheT
 
 type Ewmh = EwmhT IO
 
-type MonadEwmh = MonadAtom
+type MonadEwmh = AtomCacheCtx
 
 data NetSupported = NetSupported
     { ewmhAtoms           :: [EWMH_ATOM]

@@ -4,7 +4,7 @@ module Graphics.XHB.Ewmh.Atoms where
 
 import Data.Typeable (Typeable)
 import Data.Hashable (Hashable(..))
-import Graphics.XHB.Atom
+import Graphics.XHB.AtomCache
 
 data UTF8_STRING = UTF8_STRING
     deriving (Enum, Eq, Ord, Read, Show, Typeable)

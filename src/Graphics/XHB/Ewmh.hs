@@ -110,7 +110,7 @@ import Graphics.XHB (GetProperty(..), ChangeProperty(..), Window(..))
 import Graphics.XHB (SendEvent(..), ClientMessageEvent(..), ClientMessageData(..))
 import Graphics.XHB (PropMode(..), EventMask(..), Time(..), UnknownError(..))
 import qualified Graphics.XHB as X
-import Graphics.XHB.Atom
+import Graphics.XHB.AtomCache
 import Graphics.XHB.Ewmh.Values
 import Graphics.XHB.Ewmh.Atoms
 import Graphics.XHB.Ewmh.Types
@@ -140,7 +140,7 @@ eitherToExcept = ExceptT . return
 
 runEwmhT :: (MonadIO m, Applicative m)
          => Connection -> EwmhT m a -> m (Either SomeError a)
-runEwmhT c = runAtomT
+runEwmhT c = runAtomCacheT
     . fmap (join . join . join . join)
     . seedAtoms c utf8
     . seedAtoms c ewmh
