@@ -1,5 +1,5 @@
 name:                xhb-ewmh
-version:             0.1.0.0
+version:             0.1.0.1
 synopsis:            EWMH utilities for XHB
 description:         EWMH utilities for XHB
 license:             BSD2
@@ -32,7 +32,8 @@ library
   exposed-modules:     Graphics.XHB.Ewmh,
                        Graphics.XHB.Ewmh.Atoms,
                        Graphics.XHB.Ewmh.Types,
-                       Graphics.XHB.Ewmh.Values
+                       Graphics.XHB.Ewmh.Values,
+                       Graphics.XHB.Ewmh.Serialize
 
   other-extensions:    DeriveDataTypeable,
                        FlexibleContexts,
