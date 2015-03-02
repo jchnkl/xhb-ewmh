@@ -86,11 +86,9 @@ instance Serialize String where
 
     serializeList = mapM_ putWord8 . map (fromIntegral . ord) . concat . intersperse "\0"
 
-    deserializeList = fmap (init_ . convert) getRemainingLazyByteString
+    deserializeList = fmap convert getRemainingLazyByteString
         where nul      = fromIntegral . ord $ '\0'
               convert  = map C.unpack . B.splitWith (== nul)
-              init_ [] = []
-              init_ xs = init xs
 
 instance Serialize Word8 where
     serialize = putWord8
